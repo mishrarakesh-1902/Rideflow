@@ -137,6 +137,13 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+
+// Root route (for Render or testing)
+app.get("/", (req, res) => {
+  res.send("🚀 Rideflow backend is running successfully!");
+});
+
+
 // -------- Routes --------
 app.use('/api/auth', authRoutes);
 app.use('/api/driver', driverRoutes);
