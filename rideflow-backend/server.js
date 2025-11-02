@@ -141,7 +141,7 @@ app.use(limiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/driver', driverRoutes);
 app.use('/api/rides', rideRoutes);
-// app.use('/api/bookings', bookingRoutes);
+
 app.use('/api/payments', paymentRoutes);
 app.use('/api/mapbox', mapboxRoutes);
 
