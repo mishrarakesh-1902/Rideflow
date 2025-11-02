@@ -102,6 +102,75 @@
 //   });
 
 
+// require('dotenv').config();
+// const express = require('express');
+// const http = require('http');
+// const cors = require('cors');
+// const helmet = require('helmet');
+// const morgan = require('morgan');
+// const rateLimit = require('express-rate-limit');
+// const { initSockets } = require('./src/socket');
+// const connectDB = require('./src/config/db');
+
+// // Import routes
+// const authRoutes = require('./src/routes/auth.routes');
+// const driverRoutes = require('./src/routes/drivers.routes');
+// const rideRoutes = require('./src/routes/ride.routes');
+// // const bookingRoutes = require('./src/routes/bookings.routes');
+// const paymentRoutes = require('./src/routes/payments.routes');
+// const mapboxRoutes = require('./src/routes/mapbox.routes');
+
+// const app = express();
+// const server = http.createServer(app);
+
+// // -------- Middlewares --------
+// app.use(helmet());
+// app.use(express.json());
+// app.use(express.urlencoded({ extended: true }));
+// app.use(morgan('dev'));
+// app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
+
+// // Rate limiting
+// const limiter = rateLimit({
+//   windowMs: 60 * 1000, // 1 minute
+//   max: 120, // max requests per minute
+// });
+// app.use(limiter);
+
+
+// // Root route (for Render or testing)
+// app.get("/", (req, res) => {
+//   res.send("🚀 Rideflow backend is running successfully!");
+// });
+
+
+// // -------- Routes --------
+// app.use('/api/auth', authRoutes);
+// app.use('/api/driver', driverRoutes);
+// app.use('/api/rides', rideRoutes);
+
+// app.use('/api/payments', paymentRoutes);
+// app.use('/api/mapbox', mapboxRoutes);
+
+// // Health check
+// app.get('/api/health', (req, res) => res.json({ ok: true }));
+
+// // -------- DB + Socket.IO + Start --------
+// const PORT = process.env.PORT || 5000;
+
+// connectDB()
+//   .then(() => {
+//     initSockets(server); // initialize socket connections
+//     server.listen(PORT, () => {
+//       console.log(`✅ Server listening on port ${PORT}`);
+//     });
+//   })
+//   .catch((err) => {
+//     console.error('❌ Failed to start server', err);
+//     process.exit(1);
+//   });
+
+
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
@@ -116,56 +185,82 @@ const connectDB = require('./src/config/db');
 const authRoutes = require('./src/routes/auth.routes');
 const driverRoutes = require('./src/routes/drivers.routes');
 const rideRoutes = require('./src/routes/ride.routes');
-// const bookingRoutes = require('./src/routes/bookings.routes');
 const paymentRoutes = require('./src/routes/payments.routes');
 const mapboxRoutes = require('./src/routes/mapbox.routes');
 
 const app = express();
 const server = http.createServer(app);
 
-// -------- Middlewares --------
+// -------- Security & Middlewares --------
 app.use(helmet());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
-app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
 
-// Rate limiting
+// ✅ Define allowed frontend origins
+const allowedOrigins = [
+  'https://rideflow-qca6.onrender.com', // frontend (Render)
+  'http://localhost:3000',              // local dev
+];
+
+// ✅ CORS configuration
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log(`❌ Blocked by CORS: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+}));
+
+// ✅ Rate limiting
 const limiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 120, // max requests per minute
 });
 app.use(limiter);
 
-
-// Root route (for Render or testing)
+// ✅ Root route (for Render health check)
 app.get("/", (req, res) => {
   res.send("🚀 Rideflow backend is running successfully!");
 });
 
-
-// -------- Routes --------
+// ✅ All main routes
 app.use('/api/auth', authRoutes);
 app.use('/api/driver', driverRoutes);
 app.use('/api/rides', rideRoutes);
-
 app.use('/api/payments', paymentRoutes);
 app.use('/api/mapbox', mapboxRoutes);
 
-// Health check
+// ✅ Health check endpoint
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
-// -------- DB + Socket.IO + Start --------
+// ✅ 404 Handler
+app.use((req, res) => {
+  res.status(404).json({ message: 'Endpoint not found' });
+});
+
+// ✅ Global Error Handler
+app.use((err, req, res, next) => {
+  console.error('🔥 Server Error:', err.message);
+  res.status(500).json({ message: 'Internal Server Error', error: err.message });
+});
+
+// -------- DB + Socket.IO + Server Start --------
 const PORT = process.env.PORT || 5000;
 
 connectDB()
   .then(() => {
-    initSockets(server); // initialize socket connections
+    initSockets(server);
     server.listen(PORT, () => {
-      console.log(`✅ Server listening on port ${PORT}`);
+      console.log(`✅ Server is running on port ${PORT}`);
     });
   })
   .catch((err) => {
-    console.error('❌ Failed to start server', err);
+    console.error('❌ Failed to connect to DB', err);
     process.exit(1);
   });
