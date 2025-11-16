@@ -12,6 +12,7 @@ RideFlow is a full-stack ride-hailing application designed to provide a fast, se
 🚕 A modern Uber-like platform to demonstrate real-world full-stack architecture.
 ---
 ✨ Key Features
+
 👤 User Authentication
 
 Secure login/register (JWT-based)
@@ -26,11 +27,13 @@ Choose ride type (Economy / Standard / Premium)
 
 Request rides in real time
 
+
 📍 Map Integration (Frontend Ready)
 
 UI supports Mapbox for live tracking
 
 Mapbox API can be plugged in easily
+
 
 🚗 Driver Dashboard
 
@@ -40,11 +43,13 @@ Accept & complete rides
 
 Status tracking
 
+
 📜 Ride History
 
 Users can view travel history
 
 Rides sorted chronologically
+
 
 🎨 Modern UI & Animations
 
@@ -54,6 +59,7 @@ Smooth gradients & glass-morphism
 
 Mobile-responsive
 ---
+
 🛠 Tech Stack
 ```
 Layer	Technologies Used
@@ -67,6 +73,13 @@ Layer	Technologies Used
 
 This guide includes instructions for both frontend and backend.
 ```
+---
+📥 1. Clone the Repository
+```
+git clone https://github.com/your-username/rideflow.git
+cd rideflow
+```
+
 ---
 📦 1. Backend Setup (Node.js + Express + MongoDB)
 1️⃣ Navigate to Backend Folder
