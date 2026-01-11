@@ -233,7 +233,8 @@ rideflow/
 ```
 📸 Screenshots
 
-(Add your UI screenshots here)
+<img width="1899" height="921" alt="image" src="https://github.com/user-attachments/assets/959a9f15-4e4a-4a72-b56a-e5c92e81fdf1" />
+
 
 Example placeholders:
 
