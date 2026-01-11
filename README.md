@@ -76,7 +76,7 @@ This guide includes instructions for both frontend and backend.
 ---
 📥 1. Clone the Repository
 ```
-git clone https://github.com/your-username/rideflow.git
+git clone https://github.com/mishrarakesh-1902/rideflow.git
 cd rideflow
 ```
 
