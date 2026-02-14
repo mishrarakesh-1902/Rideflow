@@ -42,6 +42,8 @@ const userSchema = new mongoose.Schema({
   vehicle: { type: String },
   rating: { type: Number, default: 5 },
   isOnline: { type: Boolean, default: false },
+  // track active booking when a driver is assigned
+  currentBooking: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking', default: null },
   location: { type: pointSchema, index: '2dsphere' },
   // meta
   createdAt: { type: Date, default: Date.now }

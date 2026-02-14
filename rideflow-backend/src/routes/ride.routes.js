@@ -48,8 +48,7 @@ const auth = require('../middlewares/auth.middleware');
 const role = require('../middlewares/role.middleware');
 
 // Rider requests a ride
-// router.post('/request', auth, role(['rider']), bookingController.requestRide);
-router.post('/request', bookingController.requestRide);
+router.post('/request', auth, role(['rider']), bookingController.requestRide);
 // Rider fetches all their bookings
 router.get('/my', auth, role(['rider']), bookingController.getBookingsForUser);
 

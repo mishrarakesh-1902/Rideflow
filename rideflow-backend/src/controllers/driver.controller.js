@@ -40,3 +40,20 @@ exports.toggleStatus = async (req, res) => {
   } catch (e) {}
   res.json({ isOnline: driver.isOnline });
 };
+
+// Public: get number of available (online) drivers or optional nearby count via query params (lat,lng,radiusKm)
+exports.getAvailableDrivers = async (req, res) => {
+  try {
+    const { lat, lng, radiusKm } = req.query;
+    let query = { role: 'driver', isOnline: true };
+    if (lat && lng) {
+      const r = Number(radiusKm || 50) * 1000; // meters
+      query.location = { $near: { $geometry: { type: 'Point', coordinates: [Number(lng), Number(lat)] }, $maxDistance: r } };
+    }
+    const count = await User.countDocuments(query);
+    res.json({ available: count });
+  } catch (err) {
+    console.error('getAvailableDrivers error', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};

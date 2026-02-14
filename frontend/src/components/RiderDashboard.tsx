@@ -1,5 +1,6 @@
 // src/components/RiderDashboard.tsx
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,9 +22,13 @@ import { createRazorpayOrder, openRazorpayCheckout } from "@/services/payment";
 import Map, { Marker, Source, Layer } from "react-map-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
-import { initSocket, getSocket } from "@/services/socket"; // <-- ensure path correct
+import { initSocket, getSocket } from "@/services/socket";
+import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
-const RiderDashboard = () => {
+const RiderDashboard: React.FC = () => {
+  const navigate = useNavigate();
+
   const [pickup, setPickup] = useState("");
   const [destination, setDestination] = useState("");
   const [rideType, setRideType] = useState("standard");
@@ -37,10 +42,21 @@ const RiderDashboard = () => {
   const [routeGeoJSON, setRouteGeoJSON] = useState<any>(null);
   const [carPosition, setCarPosition] = useState<[number, number] | null>(null);
 
-  // New state for driver info / location from sockets
   const [driverInfo, setDriverInfo] = useState<any | null>(null);
   const [driverLocation, setDriverLocation] = useState<[number, number] | null>(null);
+  const [displayDriverLocation, setDisplayDriverLocation] = useState<[number, number] | null>(null);
   const [activeBookingId, setActiveBookingId] = useState<string | null>(null);
+  const [activeBooking, setActiveBooking] = useState<any | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'online' | 'cash'>('online');
+  const [acceptedModalOpen, setAcceptedModalOpen] = useState(false);
+  const [acceptedFare, setAcceptedFare] = useState<number | null>(null);
+  const [acceptedPaid, setAcceptedPaid] = useState<boolean | null>(null);
+  const [acceptedOtp, setAcceptedOtp] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  // Keep a ref to the active booking so socket listeners can check latest value without reattaching
+  const activeBookingRef = useRef<string | null>(null);
+  useEffect(() => { activeBookingRef.current = activeBookingId; }, [activeBookingId]);
 
   const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -52,35 +68,211 @@ const RiderDashboard = () => {
     }
   }, [MAPBOX_TOKEN]);
 
+  // Helper: fetch user's active booking (accepted/started)
+  const fetchMyActiveBooking = async () => {
+    try {
+      const resp = await api.get('/rides/my');
+      const bookings = resp.data.bookings || [];
+      // pick the most recent booking that is accepted or started
+      const active = bookings.find((b:any) => b.status === 'accepted' || b.status === 'started' || b.status === 'in_progress');
+      if (active) {
+        setActiveBookingId(active._id);
+        setActiveBooking(active);
+        if (active.otp) setAcceptedOtp(String(active.otp));
+        // ensure we join booking room to receive live updates
+        try { const s = getSocket() || initSocket(); s.emit('join:booking', { bookingId: active._id }); } catch (e) { console.warn('join booking in fetchMyActiveBooking failed', e); }
+      }
+      return active;
+    } catch (err) {
+      console.warn('fetchMyActiveBooking failed', err);
+      return null;
+    }
+  };
+
+  // Cancel my active booking (rider)
+  const cancelMyBooking = async () => {
+    if (!activeBookingId) return alert('No active booking to cancel');
+    const ok = window.confirm('Are you sure you want to cancel this ride?');
+    if (!ok) return;
+    try {
+      const res = await api.patch(`/bookings/${activeBookingId}/cancel`);
+      setActiveBookingId(null);
+      setActiveBooking(null);
+      setAcceptedModalOpen(false);
+      toast({ title: 'Booking cancelled', description: 'Your ride has been cancelled' });
+    } catch (err: any) {
+      console.error('Cancel booking failed', err?.response?.status, err?.response?.data || err);
+      alert(err?.response?.data?.message || 'Failed to cancel booking');
+    }
+  };
   // Initialize socket and set up listeners
   useEffect(() => {
     const socket = initSocket();
     if (!socket) return;
 
     socket.on("connect", () => {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      socket.emit("rider:join");
-      console.log("✅ Socket connected, emitted rider:join");
+      const user = JSON.parse(localStorage.getItem("user") || "null");
+      const token = localStorage.getItem("token") || null;
+
+      // Emit auth information so back-end can validate socket session if it expects it.
+      // Many servers expect token in the handshake; if your server already handles that,
+      // this is redundant but harmless.
+      const payload: any = {};
+      if (user && user._id) payload.riderId = user._id;
+      if (token) payload.token = token;
+
+      socket.emit("rider:join", payload);
+      console.log("✅ Socket connected; emitted rider:join", payload);
+
+      // When socket connects, attempt to find any active booking that may have been accepted while
+      // the rider was disconnected or missed the socket event.
+      (async () => { try { await fetchMyActiveBooking(); } catch (e) { console.warn('initial fetchMyActiveBooking failed', e); } })();
     });
+
+
 
     const onRideAccepted = (data: any) => {
       console.log("🔔 ride:accepted received", data);
       setDriverInfo(data.driverInfo || { id: data.driverId });
       setActiveBookingId(data.bookingId || null);
+      // set fare for modal display
+      if (typeof data.fare === 'number') setAcceptedFare(data.fare);
+      if (data.paymentMethod) setPaymentMethod(data.paymentMethod);
+
+      // OTP (for demo we receive it in socket payload)
+      if (data.otp) setAcceptedOtp(String(data.otp));
 
       if (data.bookingId) {
         socket.emit("join:booking", { bookingId: data.bookingId });
       }
 
-      alert("Driver accepted your ride! Driver arriving soon.");
+      // open acceptance confirmation modal
+      setAcceptedModalOpen(true);
+
+      // fetch booking details so we can show fare/payment status
+      (async () => {
+        try {
+          if (data.bookingId) {
+            const resp = await api.get(`/bookings/${data.bookingId}`);
+            const b = resp.data.booking;
+            if (typeof b.fare === 'number') setAcceptedFare(b.fare);
+            setAcceptedPaid(!!b.payment);
+            setPaymentMethod(b.paymentMethod || paymentMethod);            // set full active booking so left panel can show driver/fare info
+            setActiveBooking(b);
+            if (b.otp) setAcceptedOtp(String(b.otp));
+            // if payment method is cash or already paid, auto-close modal shortly
+            if (b.paymentMethod === 'cash' || b.payment) {
+              setTimeout(() => setAcceptedModalOpen(false), 3000);
+            }
+          }
+        } catch (err) {
+          // ignore
+        }
+      })();
     };
 
+    // Ride started (driver verified OTP)
+    socket.on('ride:started', (p: any) => {
+      if (p?.bookingId && p.bookingId === activeBookingRef.current) {
+        setAcceptedModalOpen(false);
+        // update active booking status locally
+        setActiveBooking((ab) => ab ? { ...ab, status: 'started', startedAt: p.startedAt } : ab);
+        alert('✅ Ride started');
+      }
+    });
+
+    // Booking cancelled (driver or rider cancellation)
+    socket.on('booking:cancelled', (p: any) => {
+      try {
+        if (p?.bookingId && p.bookingId === activeBookingRef.current) {
+          setActiveBookingId(null);
+          setActiveBooking(null);
+          setAcceptedModalOpen(false);
+          toast({ title: 'Booking cancelled', description: 'Your ride was cancelled' });
+        }
+      } catch (e) {}
+    });
+
+
+
+
     const onDriverLocation = (p: any) => {
-      if (!p || !p.lng || !p.lat) return;
+      if (!p || typeof p.lng !== "number" || typeof p.lat !== "number") return;
+      // don't show general driver pings when there's no active booking
+      if (!activeBookingRef.current) return;
       setDriverLocation([p.lng, p.lat]);
     };
+
     socket.on("ride:accepted", onRideAccepted);
     socket.on("driver:location", onDriverLocation);
+    socket.on("ride:completed", async (p: any) => {
+      // open payment UI or inform rider
+      try {
+        const bookingId = p?.bookingId;
+        if (!bookingId) return;
+        const res = await api.get(`/bookings/${bookingId}`);
+        const booking = res.data.booking;
+        if (booking.paymentMethod === 'online' && !booking.payment) {
+          // This is unlikely because online payments are taken at booking time, but keep fallback
+          // fallback partial: booking.fare in paise -> convert to rupees
+          const order = await createRazorpayOrder({ bookingId: booking._id, amount: (booking.fare || 0) / 100, currency: 'INR' });
+          const RAZORPAY_KEY = import.meta.env.VITE_RAZORPAY_KEY || '';
+          await openRazorpayCheckout({
+            key: RAZORPAY_KEY,
+            orderId: order.orderId,
+            amount: order.amount,
+            name: 'RideFlow',
+            description: `Payment for ride ${booking._id}`,
+            prefill: { name: booking.rider?.name },
+            onSuccess: async (response) => {
+              try {
+                await api.post('/payments/razorpay/verify', { ...response, rideId: booking._id });
+                alert('✅ Payment successful. Thank you!');
+              } catch (err: any) {
+                console.error('Verification error', err);
+                alert('Payment verified failed. Contact support.');
+              }
+            },
+            onFailure: (err) => {
+              console.error('Razorpay failed', err);
+              alert('Payment failed or dismissed.');
+            }
+          });
+        } else {
+          // cash or already paid - play a short beep and show final message
+          try {
+            // play beep
+            const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.type = 'sine';
+            o.frequency.value = 440;
+            o.connect(g);
+            g.connect(ctx.destination);
+            o.start();
+            g.gain.setValueAtTime(0.0001, ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.01);
+            setTimeout(() => { g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25); o.stop(); }, 300);
+          } catch (e) { }
+
+          alert(`Ride completed. Please ${booking.paymentMethod === 'cash' ? 'pay cash to driver' : 'thank you'} — Total ₹${(booking.fare/100).toFixed(2)}`);
+        }
+
+        // Clear driver-related UI state so the driver's marker disappears and booking state resets
+        try {
+          setDriverLocation(null);
+          setDisplayDriverLocation(null);
+          setDriverInfo(null);
+          setActiveBookingId(null);
+          setActiveBooking(null);
+        } catch (e) {
+          console.warn('Error clearing post-ride UI state', e);
+        }
+
+      } catch (err) {
+        console.error('Error in ride:completed handler', err);
+      }
+    });
 
     socket.on("connect_error", (err: any) => {
       console.error("Socket connect error:", err);
@@ -89,8 +281,102 @@ const RiderDashboard = () => {
     return () => {
       socket.off("ride:accepted", onRideAccepted);
       socket.off("driver:location", onDriverLocation);
+      socket.off('ride:completed');
+      // leave booking room if any when component unmounts
+      if (activeBookingRef.current) {
+        socket.emit('leave:booking', { bookingId: activeBookingRef.current });
+      }
     };
   }, []);
+
+  // If the acceptance modal opens but we don't have an OTP, try to re-fetch booking details once
+  useEffect(() => {
+    if (!acceptedModalOpen) return;
+    if (!activeBookingId) return;
+    if (acceptedOtp) return;
+    (async () => {
+      try {
+        const resp = await api.get(`/bookings/${activeBookingId}`);
+        const b = resp.data.booking;
+        if (b && b.otp) setAcceptedOtp(String(b.otp));
+      } catch (e) {
+        console.warn('Failed to refresh booking in modal', e);
+      }
+    })();
+  }, [acceptedModalOpen, activeBookingId]);
+
+  // Rider live location: when there's an active booking, rider will emit 'rider:location' to booking room
+  // (driver will receive it when joined to booking room)
+  // Note: the rider only shares location when a booking is active to respect privacy
+  // Set up a watchPosition when activeBookingId is set
+  useEffect(() => {
+    if (!navigator.geolocation) return; // not available
+    const socketClient = getSocket() || initSocket();
+    let watchId: number | null = null;
+
+    if (activeBookingId) {
+      try {
+        console.log('Rider: starting location watch for booking', activeBookingId);
+        watchId = navigator.geolocation.watchPosition(
+          (pos) => {
+            const { latitude, longitude } = pos.coords;
+            // debug log and emit rider:location to booking room so driver can see it
+            console.log('Rider: emitting location', { bookingId: activeBookingId, lng: longitude, lat: latitude });
+            try {
+              if (socketClient && (socketClient.connected || socketClient.connected === undefined)) {
+                // socket connected or not strictly using socket.io connected flag in some environments
+                socketClient.emit('rider:location', { lng: longitude, lat: latitude, bookingId: activeBookingId });
+              } else {
+                // fallback: try to initialize socket and emit after connect
+                const s = initSocket();
+                s.on && s.on('connect', () => s.emit('rider:location', { lng: longitude, lat: latitude, bookingId: activeBookingId }));
+              }
+            } catch (e) {
+              console.warn('Rider: failed to emit rider:location', e);
+            }
+          },
+          (err) => {
+            console.warn('Geolocation error (rider watch):', err);
+          },
+          { enableHighAccuracy: true, maximumAge: 2000 }
+        ) as unknown as number;
+      } catch (e) {
+        console.warn('Failed to start rider location watch', e);
+      }
+    }
+
+    return () => {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+    };
+  }, [activeBookingId]);
+
+  // Smooth driver marker movement: interpolate displayDriverLocation towards driverLocation
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!driverLocation) return;
+    let raf: number | null = null;
+    let curr = displayDriverLocation || driverLocation;
+    const step = () => {
+      const [tx, ty] = driverLocation as [number, number];
+      const [cx, cy] = curr as [number, number];
+      const nx = cx + (tx - cx) * 0.2;
+      const ny = cy + (ty - cy) * 0.2;
+      curr = [nx, ny];
+      setDisplayDriverLocation(curr as [number, number]);
+      const dist = Math.hypot(tx - nx, ty - ny);
+      if (dist > 0.0005) {
+        raf = requestAnimationFrame(step);
+      } else {
+        setDisplayDriverLocation(driverLocation);
+      }
+    };
+    raf = requestAnimationFrame(step);
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [driverLocation]);
 
   const rideOptions = [
     { id: "economy", name: "Economy", price: 850, display: "₹8.50", time: "5 min", icon: <Car className="w-5 h-5" /> },
@@ -104,7 +390,7 @@ const RiderDashboard = () => {
     { id: 3, from: "Shopping Mall", to: "Home", price: "₹9.50", rating: 4, date: "2 days ago" },
   ];
 
-  // ✅ NEW FEATURE: Automatically set default pickup as current location’s address
+  // Set default pickup to current location's address (reverse geocode)
   useEffect(() => {
     const setDefaultPickup = async () => {
       if (!navigator.geolocation || !MAPBOX_TOKEN) return;
@@ -114,7 +400,6 @@ const RiderDashboard = () => {
           const { longitude, latitude } = pos.coords;
           setCurrentLocation([longitude, latitude]);
 
-          // Reverse geocoding to get address
           try {
             const res = await fetch(
               `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?access_token=${MAPBOX_TOKEN}`
@@ -130,7 +415,6 @@ const RiderDashboard = () => {
             console.error("❌ Error fetching address:", err);
           }
 
-          // Focus map to current position
           if (mapRef.current) {
             try {
               mapRef.current.flyTo({ center: [longitude, latitude], zoom: 13, duration: 800 });
@@ -148,7 +432,7 @@ const RiderDashboard = () => {
     setDefaultPickup();
   }, [MAPBOX_TOKEN]);
 
-  // Suggestions
+  // Pickup suggestions
   useEffect(() => {
     let mounted = true;
     const t = setTimeout(async () => {
@@ -169,6 +453,7 @@ const RiderDashboard = () => {
     };
   }, [pickup]);
 
+  // Destination suggestions
   useEffect(() => {
     let mounted = true;
     const t = setTimeout(async () => {
@@ -202,7 +487,7 @@ const RiderDashboard = () => {
     setDestinationSuggestions([]);
   };
 
-  // Auto-zoom for pickup & destination
+  // Fit map bounds when both points selected
   useEffect(() => {
     if (mapRef.current && selectedPickupCenter && selectedDestCenter) {
       const [lng1, lat1] = selectedPickupCenter;
@@ -219,7 +504,7 @@ const RiderDashboard = () => {
     }
   }, [selectedPickupCenter, selectedDestCenter]);
 
-  // Fetch route
+  // Fetch route from Mapbox
   useEffect(() => {
     const fetchRoute = async () => {
       if (!selectedPickupCenter || !selectedDestCenter || !MAPBOX_TOKEN) return;
@@ -240,9 +525,20 @@ const RiderDashboard = () => {
     fetchRoute();
   }, [selectedPickupCenter, selectedDestCenter, MAPBOX_TOKEN]);
 
-  // Request ride
+  // ---------------- Request ride ----------------
   const handleRequestRide = async () => {
     try {
+      // Auth guard
+      const token = localStorage.getItem("token");
+      const user = JSON.parse(localStorage.getItem("user") || "null");
+
+      if (!token || !user || !user._id) {
+        alert("You must be logged in to request a ride. Please sign in.");
+        navigate("/"); // change to login route if different
+        return;
+      }
+
+      // Input guard
       if (!pickup || !destination || !selectedPickupCenter || !selectedDestCenter) {
         alert("Please enter pickup and destination");
         return;
@@ -261,63 +557,82 @@ const RiderDashboard = () => {
         },
         rideType,
         fare: option.price,
+        paymentMethod,
       };
 
-      const res = await api.post("/rides/request", payload);
-      const booking = res.data;
+      // API call: rely on api interceptor, but add explicit header as fallback
+      const res = await api.post("/rides/request", payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const booking = res.data?.booking || res.data;
       console.log("🚕 Booking created:", booking);
 
-      const order = await createRazorpayOrder({
-        amount: option.price,
-        currency: "INR",
-        metadata: { rideId: booking._id },
-      });
-
       const socket = getSocket() || initSocket();
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      const riderId = user?._id || user?.id || null;
+      const riderId = (user && user._id) || (user && user.id) || null;
 
-      socket.emit("ride:request", {
-        bookingId: booking._id,
-        riderId,
-        pickup: payload.pickup,
-        destination: payload.destination,
-        fare: payload.fare,
-      });
+      if (paymentMethod === 'online') {
+        // For online payment flow we require payment before notifying drivers.
+        // Create Razorpay order and open checkout now; after successful verify the server will mark booking requested and notify drivers.
+        // option.price is stored in paise; convert to rupees for order creation
+        let order;
+        try {
+          order = await createRazorpayOrder({ bookingId: booking._id, amount: option.price / 100, currency: "INR" });
+        } catch (err: any) {
+          console.error('❌ createRazorpayOrder failed', err);
+          const msg = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Payment service error';
+          alert(msg);
+          return; // abort flow
+        }
 
-      socket.emit("join:booking", { bookingId: booking._id });
-      setActiveBookingId(booking._id);
+        const RAZORPAY_KEY = import.meta.env.VITE_RAZORPAY_KEY || "";
 
-      const RAZORPAY_KEY = import.meta.env.VITE_RAZORPAY_KEY || "";
-      await openRazorpayCheckout({
-        key: RAZORPAY_KEY,
-        orderId: order.orderId,
-        amount: order.amount,
-        name: "RideFlow",
-        description: `Payment for ride ${booking._id}`,
-        prefill: {
-          name: user?.name,
-          email: user?.email,
-        },
-        onSuccess: async (response) => {
-          try {
-            await api.post("/payments/razorpay/verify", {
-              ...response,
-              rideId: booking._id,
-            });
-            alert("✅ Payment successful and ride booked!");
-          } catch (err) {
-            console.error("❌ Payment verify error", err);
-            alert("Payment succeeded but verification failed. Please contact support.");
-          }
-        },
-        onFailure: (err) => {
-          console.error("❌ Razorpay dismissed or failed", err);
-          alert("Payment cancelled or failed. Ride request may be pending.");
-        },
-      });
+        await openRazorpayCheckout({
+          key: RAZORPAY_KEY,
+          orderId: order.orderId,
+          amount: order.amount,
+          name: "RideFlow",
+          description: `Payment for ride ${booking._id}`,
+          prefill: {
+            name: user?.name,
+            email: user?.email,
+          },
+          onSuccess: async (response) => {
+            try {
+              // Verify payment and let server handle driver notifications
+              await api.post("/payments/razorpay/verify", { ...response, rideId: booking._id });
+
+              // join booking room and set active booking
+              socket.emit("join:booking", { bookingId: booking._id });
+              setActiveBookingId(booking._id);
+
+              alert("✅ Payment successful and ride will be matched with drivers shortly.");
+            } catch (err: any) {
+              console.error("❌ Payment verify error", err);
+              alert("Payment succeeded but verification failed. Please contact support.");
+            }
+          },
+          onFailure: (err) => {
+            console.error("❌ Razorpay dismissed or failed", err);
+            alert("Payment cancelled or failed. Ride request may be pending.");
+          },
+        });
+      } else {
+        // Cash payment chosen — notify drivers now and join booking room
+        socket.emit("ride:request", { bookingId: booking._id, riderId, pickup: payload.pickup, destination: payload.destination, fare: payload.fare });
+        socket.emit("join:booking", { bookingId: booking._id });
+        setActiveBookingId(booking._id);
+        alert('✅ Ride requested. Pay in cash to driver when the ride completes.');
+      }
     } catch (err: any) {
       console.error("❌ Request ride error", err);
+      if (err?.response?.status === 401) {
+        alert("Unauthorized — your session may have expired. Please log in again.");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/");
+        return;
+      }
       alert(err?.response?.data?.message || err?.message || "Failed to request ride");
     }
   };
@@ -350,94 +665,154 @@ const RiderDashboard = () => {
       <div className="max-w-6xl mx-auto px-4 grid lg:grid-cols-3 gap-6">
         {/* Booking Panel */}
         <div className="lg:col-span-1 space-y-6">
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="text-lg">Book Your Ride</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Pickup & Destination */}
-              <div className="space-y-3">
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-3 w-4 h-4 text-primary" />
-                  <Input
-                    placeholder="Pickup location"
-                    value={pickup}
-                    onChange={(e) => setPickup(e.target.value)}
-                    className="pl-10"
-                  />
-                  {pickupSuggestions.length > 0 && (
-                    <div className="mt-2 space-y-1 bg-background border rounded-md shadow-sm">
-                      {pickupSuggestions.slice(0, 5).map((s) => (
-                        <div
-                          key={s.id}
-                          className="cursor-pointer text-sm p-2 hover:bg-muted"
-                          onClick={() => handleSelectPickupSuggestion(s)}
-                        >
-                          {s.place_name}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="relative">
-                  <Navigation className="absolute left-3 top-3 w-4 h-4 text-primary" />
-                  <Input
-                    placeholder="Where to?"
-                    value={destination}
-                    onChange={(e) => setDestination(e.target.value)}
-                    className="pl-10"
-                  />
-                  {destinationSuggestions.length > 0 && (
-                    <div className="mt-2 space-y-1 bg-background border rounded-md shadow-sm">
-                      {destinationSuggestions.slice(0, 5).map((s) => (
-                        <div
-                          key={s.id}
-                          className="cursor-pointer text-sm p-2 hover:bg-muted"
-                          onClick={() => handleSelectDestSuggestion(s)}
-                        >
-                          {s.place_name}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Ride Options */}
-              <div className="space-y-3">
-                <h4 className="font-medium">Choose Ride Type</h4>
-                {rideOptions.map((option) => (
-                  <div
-                    key={option.id}
-                    className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
-                      rideType === option.id
-                        ? "border-primary bg-primary/10"
-                        : "border-border hover:border-primary/50"
-                    }`}
-                    onClick={() => setRideType(option.id)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="text-primary">{option.icon}</div>
-                        <div>
-                          <div className="font-medium">{option.name}</div>
-                          <div className="text-sm text-muted-foreground">{option.time} away</div>
-                        </div>
+          {!activeBooking ? (
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="text-lg">Book Your Ride</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Pickup & Destination */}
+                <div className="space-y-3">
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-3 w-4 h-4 text-primary" />
+                    <Input
+                      placeholder="Pickup location"
+                      value={pickup}
+                      onChange={(e) => setPickup(e.target.value)}
+                      className="pl-10"
+                    />
+                    {pickupSuggestions.length > 0 && (
+                      <div className="mt-2 space-y-1 bg-background border rounded-md shadow-sm">
+                        {pickupSuggestions.slice(0, 5).map((s) => (
+                          <div
+                            key={s.id}
+                            className="cursor-pointer text-sm p-2 hover:bg-muted"
+                            onClick={() => handleSelectPickupSuggestion(s)}
+                          >
+                            {s.place_name}
+                          </div>
+                        ))}
                       </div>
-                      <div className="text-right font-bold text-primary">{option.display}</div>
-                    </div>
+                    )}
                   </div>
-                ))}
-              </div>
 
-              <Button className="w-full btn-gradient h-12 text-lg" onClick={handleRequestRide}>
-                Request Ride
-              </Button>
-            </CardContent>
-          </Card>
+                  <div className="relative">
+                    <Navigation className="absolute left-3 top-3 w-4 h-4 text-primary" />
+                    <Input
+                      placeholder="Where to?"
+                      value={destination}
+                      onChange={(e) => setDestination(e.target.value)}
+                      className="pl-10"
+                    />
+                    {destinationSuggestions.length > 0 && (
+                      <div className="mt-2 space-y-1 bg-background border rounded-md shadow-sm">
+                        {destinationSuggestions.slice(0, 5).map((s) => (
+                          <div
+                            key={s.id}
+                            className="cursor-pointer text-sm p-2 hover:bg-muted"
+                            onClick={() => handleSelectDestSuggestion(s)}
+                          >
+                            {s.place_name}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Ride Options */}
+                <div className="space-y-3">
+                  <h4 className="font-medium">Choose Ride Type</h4>
+                  {rideOptions.map((option) => (
+                    <div
+                      key={option.id}
+                      className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                        rideType === option.id
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:border-primary/50"
+                      }`}
+                      onClick={() => setRideType(option.id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="text-primary">{option.icon}</div>
+                          <div>
+                            <div className="font-medium">{option.name}</div>
+                            <div className="text-sm text-muted-foreground">{option.time} away</div>
+                          </div>
+                        </div>
+                        <div className="text-right font-bold text-primary">{option.display}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Payment Method */}
+                <div className="space-y-2">
+                  <h4 className="font-medium">Payment</h4>
+                  <div className="flex items-center space-x-4">
+                    <label className={`p-2 rounded-md border cursor-pointer ${paymentMethod === 'online' ? 'border-primary bg-primary/10' : ''}`} onClick={() => setPaymentMethod('online')}>
+                      <input type="radio" name="payment" checked={paymentMethod === 'online'} readOnly className="mr-2" /> Pay Online
+                    </label>
+                    <label className={`p-2 rounded-md border cursor-pointer ${paymentMethod === 'cash' ? 'border-primary bg-primary/10' : ''}`} onClick={() => setPaymentMethod('cash')}>
+                      <input type="radio" name="payment" checked={paymentMethod === 'cash'} readOnly className="mr-2" /> Pay Cash (COD)
+                    </label>
+                  </div>
+                </div>
+
+                <Button className="w-full btn-gradient h-12 text-lg" onClick={handleRequestRide}>
+                  Request Ride
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="text-lg">Driver Assigned</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                    <User className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <div className="font-medium">{driverInfo?.name || activeBooking?.driver?.name || 'Driver'}</div>
+                    <div className="text-sm text-muted-foreground">{driverInfo?.phone || activeBooking?.driver?.phone}</div>
+                    {driverInfo?.vehicle || activeBooking?.driver?.vehicle ? <div className="text-sm text-muted-foreground">Vehicle: {driverInfo?.vehicle || activeBooking?.driver?.vehicle}</div> : null}
+                  </div>
+                </div>
+
+                <div className="mt-3">
+                  <div className="text-sm text-muted-foreground">Pickup</div>
+                  <div className="font-medium">{activeBooking?.pickup?.address || '-'}</div>
+                  <div className="text-sm text-muted-foreground mt-2">Destination</div>
+                  <div className="font-medium">{activeBooking?.destination?.address || '-'}</div>
+                </div>
+
+                <div className="mt-3 text-center">
+                  <div className="text-lg text-muted-foreground">Total Fare</div>
+                  <div className="text-2xl font-bold text-gradient">₹{((acceptedFare ? acceptedFare/100 : ((activeBooking?.fare || 0)/100))).toFixed(2)}</div>
+                  <div className="text-sm text-muted-foreground">{activeBooking?.paymentMethod === 'cash' ? 'Pay cash to driver' : 'Paid online'}</div>
+                </div>
+
+                {acceptedOtp && (
+                  <div className="mt-3 flex items-center justify-center space-x-3">
+                    <div className="px-3 py-2 rounded-md bg-primary/10 font-mono">OTP: <span className="font-bold">{acceptedOtp}</span></div>
+                    <Button variant="outline" size="sm" onClick={() => { navigator.clipboard?.writeText(String(acceptedOtp)); toast({ title: 'OTP copied' })}}>Copy OTP</Button>
+                  </div>
+                )}
+
+                <div className="mt-4 flex space-x-2">
+                  <Button className="btn-gradient" onClick={()=>{ alert('Open tracking'); }}>Track Driver</Button>
+                  <Button variant="outline" onClick={()=>{ alert('Contact: ' + (driverInfo?.phone|| 'n/a'))}}>Contact</Button>
+                  <Button variant="ghost" className="text-red-600" onClick={cancelMyBooking}>Cancel Ride</Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
-        {/* 🗺️ Map */}
+        {/* Map */}
         <div className="lg:col-span-2">
           <Card className="glass-card h-96 lg:h-[600px]">
             <CardContent className="p-0 h-full">
@@ -452,29 +827,22 @@ const RiderDashboard = () => {
                 }}
                 style={{ width: "100%", height: "100%" }}
               >
-                {/* Rider current location */}
-                {currentLocation && (
-                  <Marker longitude={currentLocation[0]} latitude={currentLocation[1]} color="red" />
-                )}
+                {currentLocation && <Marker longitude={currentLocation[0]} latitude={currentLocation[1]} color="red" />}
 
-                {/* Pickup marker */}
                 {selectedPickupCenter && (
                   <Marker longitude={selectedPickupCenter[0]} latitude={selectedPickupCenter[1]} color="green" />
                 )}
 
-                {/* Destination marker */}
                 {selectedDestCenter && (
                   <Marker longitude={selectedDestCenter[0]} latitude={selectedDestCenter[1]} color="blue" />
                 )}
 
-                {/* Driver marker (realtime) */}
-                {driverLocation && (
-                  <Marker longitude={driverLocation[0]} latitude={driverLocation[1]}>
+                {displayDriverLocation && (
+                  <Marker longitude={displayDriverLocation[0]} latitude={displayDriverLocation[1]}>
                     <div className="text-xl">🚗</div>
                   </Marker>
                 )}
 
-                {/* Car marker */}
                 {carPosition && (
                   <Marker longitude={carPosition[0]} latitude={carPosition[1]} anchor="center">
                     <div className="animate-bounce">
@@ -483,7 +851,6 @@ const RiderDashboard = () => {
                   </Marker>
                 )}
 
-                {/* Route line */}
                 {routeGeoJSON && (
                   <Source id="route" type="geojson" data={routeGeoJSON}>
                     <Layer
@@ -503,6 +870,77 @@ const RiderDashboard = () => {
           </Card>
         </div>
       </div>
+
+      {/* Accepted modal */}
+      <Dialog open={acceptedModalOpen} onOpenChange={setAcceptedModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Driver on the way 🚗</DialogTitle>
+            <DialogDescription>
+              {driverInfo?.name ? (
+                <div>
+                  <div className="font-medium">{driverInfo.name} is coming to pick you up</div>
+                  {driverInfo?.vehicle && <div className="text-sm text-muted-foreground">Vehicle: {driverInfo.vehicle}</div>}
+                </div>
+              ) : (
+                <span className="text-sm text-muted-foreground">A driver has accepted your ride</span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 text-center">
+            <div className="mx-auto w-20 h-20 rounded-full bg-success/20 flex items-center justify-center">
+              <svg className="w-12 h-12 text-success animate-scale-in" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M20 6L9 17l-5-5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <div className="mt-3">
+              <div className="text-lg font-medium">{driverInfo?.name || 'Driver'}</div>
+              {driverInfo?.phone && <div className="text-sm text-muted-foreground">{driverInfo.phone}</div>}
+              {acceptedFare !== null && (
+                <div className="mt-2 text-sm">Total: <span className="font-bold">₹{(acceptedFare/100).toFixed(2)}</span></div>
+              )}
+
+              {/* OTP display (rider) */}
+              {acceptedOtp ? (
+                <div className="mt-3 flex items-center justify-center space-x-3">
+                  <div className="px-3 py-2 rounded-md bg-primary/10 font-mono">OTP: <span className="font-bold">{acceptedOtp}</span></div>
+                  <Button variant="outline" size="sm" onClick={() => { navigator.clipboard?.writeText(String(acceptedOtp)); toast({ title: 'OTP copied', description: 'Share this OTP with the driver' }); }}>
+                    Copy OTP
+                  </Button>
+                </div>
+              ) : (
+                <div className="mt-3 flex items-center justify-center space-x-3">
+                  <div className="px-3 py-2 rounded-md bg-warning/10 text-warning">OTP not available yet</div>
+                  <Button size="sm" variant="outline" onClick={async () => {
+                    // Retry fetching booking details to get OTP
+                    if (!activeBookingId) return alert('No active booking');
+                    try {
+                      const resp = await api.get(`/bookings/${activeBookingId}`);
+                      const b = resp.data.booking;
+                      if (b.otp) { setAcceptedOtp(String(b.otp)); toast({ title: 'OTP loaded' }); }
+                      else { alert('OTP not yet generated. Please wait a moment.'); }
+                    } catch (err) { console.error('Retry fetch OTP failed', err); alert('Failed to fetch OTP'); }
+                  }}>Retry OTP</Button>
+                </div>
+              )}
+
+              {paymentMethod === 'online' && acceptedPaid === false && (
+                <div className="mt-3">
+                  <Button className="btn-gradient" onClick={async () => {
+                    if (!activeBookingId) return;
+                    try {
+                      // acceptedFare stored in paise; convert to rupees for order creation
+                      const order = await createRazorpayOrder({ bookingId: activeBookingId, amount: (acceptedFare ?? 0) / 100 });
+                      const RAZORPAY_KEY = import.meta.env.VITE_RAZORPAY_KEY || '';
+                      await openRazorpayCheckout({ key: RAZORPAY_KEY, orderId: order.orderId, amount: order.amount, name: 'RideFlow', description: `Payment for ride ${activeBookingId}`, prefill: {} , onSuccess: async (r) => { await api.post('/payments/razorpay/verify', { ...r, rideId: activeBookingId }); alert('Payment successful'); setAcceptedPaid(true); setAcceptedModalOpen(false); }, onFailure: () => alert('Payment failed')});
+                    } catch (err) { console.error(err); alert('Payment error'); }
+                  }}>Pay Now</Button>
+                </div>
+              )} 
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Recent Rides */}
       <div className="max-w-6xl mx-auto px-4 mt-6">

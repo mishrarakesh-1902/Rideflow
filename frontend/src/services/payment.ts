@@ -7,12 +7,13 @@ declare global {
   }
 }
 
-export async function createRazorpayOrder(payload: { amount: number; currency?: string; metadata?: any }) {
+export async function createRazorpayOrder(payload: { amount: number; currency?: string; metadata?: any; bookingId?: string }) {
   // amount in smallest currency unit (e.g., paise if INR)
-  const res = await api.post("/payment/razorpay/create-order", {
+  // backend expects bookingId and amount (amount in rupees)
+  const res = await api.post("/payments/order", {
+    bookingId: payload.bookingId || payload.metadata?.rideId || null,
     amount: payload.amount,
     currency: payload.currency || "INR",
-    metadata: payload.metadata || {},
   });
   return res.data; // expect { orderId, amount, currency, receipt? }
 }

@@ -200,8 +200,10 @@ app.use(morgan('dev'));
 // ✅ Define allowed frontend origins
 const allowedOrigins = [
   'https://rideflow-qca6.onrender.com', // frontend (Render)
-  'http://localhost:3000',              // local dev
-];
+  'http://localhost:8080',              // local dev (vite default)
+  'http://localhost:8081',              // vite alternate port
+  (process.env.CORS_ORIGIN || '').toString(), // allow explicit override via .env
+].filter(Boolean);
 
 // ✅ CORS configuration
 app.use(cors({
@@ -233,6 +235,7 @@ app.get("/", (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/driver', driverRoutes);
 app.use('/api/rides', rideRoutes);
+app.use('/api/bookings', require('./src/routes/bookings.routes'));
 app.use('/api/payments', paymentRoutes);
 app.use('/api/mapbox', mapboxRoutes);
 
@@ -256,6 +259,14 @@ const PORT = process.env.PORT || 5000;
 connectDB()
   .then(() => {
     initSockets(server);
+    server.on('error', (err) => {
+      if (err && err.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${PORT} already in use. Kill the process using it or set a different PORT in .env`);
+      } else {
+        console.error('🔥 Server error during startup:', err);
+      }
+      process.exit(1);
+    });
     server.listen(PORT, () => {
       console.log(`✅ Server is running on port ${PORT}`);
     });

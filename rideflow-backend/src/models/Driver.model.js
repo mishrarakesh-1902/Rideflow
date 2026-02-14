@@ -28,7 +28,7 @@ vehicle: {
 make: String,
 model: String,
 plate: String
-},
+}, 
 isAvailable: { type: Boolean, default: true },
 rating: { type: Number, default: 5 },
 location: {
@@ -43,3 +43,78 @@ DriverSchema.index({ location: '2dsphere' });
 
 
 module.exports = mongoose.model('Driver', DriverSchema);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

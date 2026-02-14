@@ -41,7 +41,7 @@ const bookingSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['requested', 'accepted', 'started', 'completed', 'cancelled'],
+    enum: ['requested', 'pending_payment', 'accepted', 'started', 'completed', 'cancelled'],
     default: 'requested'
   },
   fare: { type: Number, default: 0 },
@@ -49,7 +49,15 @@ const bookingSchema = new mongoose.Schema({
   estimatedTimeMin: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
   updatedAt: Date,
-  payment: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment' }
+  otp: { type: String },
+  otpExpiresAt: Date,
+  otpVerified: { type: Boolean, default: false },
+  startedAt: Date,
+  completedAt: Date,
+  cancelledAt: Date,
+  cancellationReason: String,
+  payment: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment' },
+  paymentMethod: { type: String, enum: ['online', 'cash'], default: 'online' }
 });
 
 bookingSchema.pre('save', function (next) {

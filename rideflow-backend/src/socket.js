@@ -136,6 +136,17 @@ function initSockets(server) {
         console.log(`🔐 Socket ${socket.id} joined booking:${bookingId}`);
       });
 
+      // Allow clients to leave booking room when booking completes or on cancel
+      socket.on("leave:booking", ({ bookingId }) => {
+        if (!bookingId) return;
+        try {
+          socket.leave(`booking:${bookingId}`);
+          console.log(`🔐 Socket ${socket.id} left booking:${bookingId}`);
+        } catch (err) {
+          console.warn('Error leaving booking room', err.message);
+        }
+      });
+
       // --- LOCATION STREAMS ---
       socket.on("driver:location", ({ lng, lat, bookingId }) => {
         if (!lng || !lat) return;
@@ -224,4 +235,19 @@ function initSockets(server) {
   return io;
 }
 
-module.exports = { initSockets };
+// expose helpers so other modules can check socket state or emit to users
+module.exports = {
+  initSockets,
+  helpers: {
+    getSocketIdByUserId: (userId) => userSocketMap.get(userId?.toString()),
+    isUserConnected: (userId) => userSocketMap.has(userId?.toString()),
+    emitToUser: (userId, evt, payload) => {
+      if (!io) return;
+      io.to(`user:${userId}`).emit(evt, payload);
+    },
+    emitToRoom: (room, evt, payload) => {
+      if (!io) return;
+      io.to(room).emit(evt, payload);
+    }
+  },
+};

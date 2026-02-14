@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { 
   MapPin, 
@@ -38,6 +39,123 @@ const Index = () => {
       description: "5-star rated service with luxury vehicle options"
     }
   ];
+
+  // Mapbox helpers
+  const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
+
+  const [pickup, setPickup] = useState('');
+  const [destination, setDestination] = useState('');
+  const [pickupSuggestions, setPickupSuggestions] = useState<any[]>([]);
+  const [destinationSuggestions, setDestinationSuggestions] = useState<any[]>([]);
+  const [selectedPickup, setSelectedPickup] = useState<[number, number] | null>(null);
+  const [selectedDest, setSelectedDest] = useState<[number, number] | null>(null);
+  const [estFare, setEstFare] = useState<number | null>(null);
+  const [estETA, setEstETA] = useState<number | null>(null);
+  const [requesting, setRequesting] = useState(false);
+  const [availableDrivers, setAvailableDrivers] = useState<number | null>(null);
+  const [avgWait, setAvgWait] = useState<string | null>(null);
+
+  // fetch available drivers periodically (for preview card)
+  useEffect(() => {
+    let mounted = true;
+    async function fetchAvailable() {
+      try {
+        const res = await fetch('/api/drivers/available');
+        if (!res.ok) return;
+        const j = await res.json();
+        if (!mounted) return;
+        const count = j.available || 0;
+        setAvailableDrivers(count);
+        setAvgWait(count > 0 ? `${Math.max(2, Math.round(6 / count))} min` : '—');
+      } catch (e) {}
+    }
+    fetchAvailable();
+    const id = setInterval(fetchAvailable, 15000); // refresh every 15s
+    return () => { mounted = false; clearInterval(id); };
+  }, []);
+
+  useEffect(() => {
+    async function fetchEstimate() {
+      if (!selectedPickup || !selectedDest || !MAPBOX_TOKEN) return;
+      try {
+        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${selectedPickup[0]},${selectedPickup[1]};${selectedDest[0]},${selectedDest[1]}?overview=full&geometries=geojson&access_token=${MAPBOX_TOKEN}`;
+        const res = await fetch(url);
+        const json = await res.json();
+        if (json && json.routes && json.routes.length > 0) {
+          const route = json.routes[0];
+          const distKm = (route.distance || 0) / 1000; // km
+          const durMin = Math.round((route.duration || 0) / 60); // minutes
+          // fare model: base 30 + 12 per km (in paise cents model: multiply rupees by 100)
+          const fareRupees = 30 + 12 * distKm;
+          setEstFare(Math.round(fareRupees * 100));
+          setEstETA(durMin);
+        }
+      } catch (e) {
+        console.warn('Estimate failed', e);
+      }
+    }
+    fetchEstimate();
+  }, [selectedPickup, selectedDest, MAPBOX_TOKEN]);
+
+  const onSuggest = async (q: string, which: 'pickup' | 'dest') => {
+    try {
+      if (!q || !MAPBOX_TOKEN) return;
+      const url = `/api/mapbox/suggest?q=${encodeURIComponent(q)}`;
+      const res = await fetch(url);
+      const json = await res.json();
+      const items = json.results || [];
+      if (which === 'pickup') setPickupSuggestions(items);
+      else setDestinationSuggestions(items);
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const selectSuggestion = (item: any, which: 'pickup' | 'dest') => {
+    const coords = item.center as [number, number];
+    if (which === 'pickup') {
+      setSelectedPickup(coords);
+      setPickup(item.place_name);
+      setPickupSuggestions([]);
+    } else {
+      setSelectedDest(coords);
+      setDestination(item.place_name);
+      setDestinationSuggestions([]);
+    }
+  };
+
+  const handleRequestRideMini = async () => {
+    if (!selectedPickup || !selectedDest) return alert('Select pickup and destination');
+    if (requesting) return;
+    setRequesting(true);
+    try {
+      const payload = {
+        pickup: { address: pickup, location: { type: 'Point', coordinates: selectedPickup } },
+        destination: { address: destination, location: { type: 'Point', coordinates: selectedDest } },
+        rideType: 'standard',
+        paymentMethod: 'cash',
+      };
+      const token = localStorage.getItem('token');
+      if (!token) { alert('Please login to request a ride'); setRequesting(false); return; }
+      const resp = await fetch('/api/rides/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      });
+      if (!resp.ok) {
+        const err = await resp.json();
+        alert(err.message || 'Request failed');
+        setRequesting(false);
+        return;
+      }
+      const j = await resp.json();
+      // redirect to rider dashboard so they can see accepted driver etc.
+      window.location.href = '/dashboard/rider';
+    } catch (e) {
+      console.error('Request mini ride failed', e);
+      alert('Failed to request ride');
+    } finally { setRequesting(false); }
+  };
 
   return (
     <div className="min-h-screen">
@@ -155,37 +273,81 @@ const Index = () => {
           <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
             <Card className="glass-card p-8">
               <CardContent className="p-0">
-                <h3 className="text-2xl font-bold mb-4 text-white">
+                <h3 className="text-2xl font-bold mb-4 text-slate-800">
                   {activeTab === "rider" ? "Rider Dashboard" : "Driver Dashboard"}
                 </h3>
                 <div className="bg-white/5 rounded-2xl p-6 mb-6">
                   {activeTab === "rider" ? (
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-white/70">Where to?</span>
+                        <span className="text-slate-700">Where to?</span>
                         <MapPin className="text-primary" />
                       </div>
-                      <div className="h-32 bg-primary/20 rounded-xl flex items-center justify-center">
-                        <Car className="text-primary text-4xl" />
+                      <div className="bg-white rounded-xl p-4 mb-4 shadow">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <div className="text-sm text-white/70">Pickup</div>
+                            <Input placeholder="Enter pickup" value={pickup} onChange={(e) => { setPickup((e.target as HTMLInputElement).value); onSuggest((e.target as HTMLInputElement).value, 'pickup'); }} className="mb-1" />
+                            {pickupSuggestions.length > 0 && (
+                              <div className="bg-white rounded-md mt-1 text-left text-sm text-slate-800 p-2 max-h-40 overflow-auto shadow">
+                                {pickupSuggestions.map((s:any) => (
+                                  <div key={s.id} className="py-1 hover:bg-slate-100 rounded px-2 cursor-pointer" onClick={() => selectSuggestion(s, 'pickup')}>{s.place_name}</div>
+                                ))}
+                              </div>
+                            )}
+
+                            <div className="text-sm text-white/70 mt-3">Destination</div>
+                            <Input placeholder="Enter destination" value={destination} onChange={(e) => { setDestination((e.target as HTMLInputElement).value); onSuggest((e.target as HTMLInputElement).value, 'dest'); }} />
+                            {destinationSuggestions.length > 0 && (
+                              <div className="bg-white rounded-md mt-1 text-left text-sm text-slate-800 p-2 max-h-40 overflow-auto shadow">
+                                {destinationSuggestions.map((s:any) => (
+                                  <div key={s.id} className="py-1 hover:bg-slate-100 rounded px-2 cursor-pointer" onClick={() => selectSuggestion(s, 'dest')}>{s.place_name}</div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex flex-col justify-center items-center">
+                            <div className="text-sm text-white/70">Vehicle</div>
+                            <div className="mt-3 bg-white/10 rounded-lg p-4 w-full text-center">
+                              <Car className="mx-auto text-primary text-4xl" />
+                              <div className="text-white/80 mt-2">Standard</div>
+                              <div className="text-sm text-white/70 mt-1">Comfortable and affordable</div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex justify-between text-white/70">
-                        <span>Estimated: $12.50</span>
-                        <span>ETA: 5 min</span>
+
+                      <div className="flex justify-between text-white/80 items-center">
+                        <div>
+                          <div className="text-sm text-slate-700">Estimated Fare</div>
+                          <div className="text-xl font-bold mt-1 text-slate-900">{estFare ? `₹${(estFare/100).toFixed(2)}` : '—'}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm text-slate-700">ETA</div>
+                          <div className="text-xl font-bold mt-1 text-slate-900">{estETA ? `${estETA} min` : '—'}</div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <Button className="w-full btn-gradient h-12 text-lg" onClick={handleRequestRideMini} disabled={!selectedPickup || !selectedDest || requesting}>
+                          {requesting ? 'Requesting...' : 'Request Ride'}
+                        </Button>
                       </div>
                     </div>
                   ) : (
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-white/70">Online Status</span>
+                        <span className="text-slate-700">Online Status</span>
                         <div className="w-3 h-3 bg-success rounded-full"></div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-gradient">$248</div>
+                          <div className="text-2xl font-bold text-primary">₹248</div>
                           <div className="text-white/70 text-sm">Today's Earnings</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-gradient">4.9</div>
+                          <div className="text-2xl font-bold text-slate-900">4.9</div>
                           <div className="text-white/70 text-sm">Rating</div>
                         </div>
                       </div>
@@ -201,7 +363,7 @@ const Index = () => {
             
             <Card className="glass-card p-8">
               <CardContent className="p-0">
-                <h3 className="text-2xl font-bold mb-4 text-white">Key Features</h3>
+                <h3 className="text-2xl font-bold mb-4 text-slate-800">Key Features</h3>
                 <div className="space-y-4">
                   {activeTab === "rider" ? (
                     <>
@@ -220,6 +382,18 @@ const Index = () => {
                       <div className="flex items-center text-white/80">
                         <Clock className="mr-3 text-primary" />
                         Schedule rides in advance
+                      </div>
+                      <div className="mt-4 bg-white/5 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-sm text-white/70">Drivers available nearby</div>
+                            <div className="text-2xl font-bold text-gradient">{availableDrivers ?? '—'}</div>
+                          </div>
+                          <div className="text-right text-sm text-white/70">
+                            <div>Avg wait: {avgWait ?? '—'}</div>
+                            <div>Standard fare: {estFare ? `₹${(estFare/100).toFixed(2)}` : '—'}</div>
+                          </div>
+                        </div>
                       </div>
                     </>
                   ) : (
