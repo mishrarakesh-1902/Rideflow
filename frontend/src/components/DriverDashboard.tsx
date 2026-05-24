@@ -1,4 +1,4 @@
-// src/components/DriverDashboard.tsx
+﻿// src/components/DriverDashboard.tsx
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -65,10 +65,32 @@ const DriverDashboard = () => {
       const updated = res.data.booking || res.data;
       setCurrentRide(updated);
       setHasActiveRide(true);
+      setOtpInput(''); // Clear OTP input after successful verification
       toast({ title: 'Ride started', description: 'OTP verified and ride started' });
     } catch (err: any) {
       console.error('Start ride failed', err?.response?.status, err?.response?.data || err);
-      alert(err?.response?.data?.message || err?.message || 'OTP verification failed');
+      const errorMessage = err?.response?.data?.message || err?.message || 'OTP verification failed';
+
+      if (errorMessage.includes('expired')) {
+        alert('OTP has expired. Please ask the rider for a new OTP or contact support.');
+      } else if (errorMessage.includes('Invalid OTP')) {
+        alert('Invalid OTP. Please check the OTP with the rider.');
+      } else {
+        alert(errorMessage);
+      }
+    }
+  };
+
+  const regenerateOtp = async () => {
+    if (!currentRide || !currentRide._id) return alert('No active booking');
+    try {
+      const res = await api.patch(`/bookings/${currentRide._id}/regenerate-otp`);
+      const updated = res.data.booking || res.data;
+      setCurrentRide(updated);
+      toast({ title: 'OTP Regenerated', description: 'A new OTP has been sent to the rider' });
+    } catch (err: any) {
+      console.error('Regenerate OTP failed', err?.response?.status, err?.response?.data || err);
+      alert(err?.response?.data?.message || err?.message || 'Failed to regenerate OTP');
     }
   };
 
@@ -551,381 +573,269 @@ const DriverDashboard = () => {
 
   // Render
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-slate-950 text-white flex flex-col">
       {/* Header */}
-      <div className="glass-card rounded-none p-4 mb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="icon">
-              <Menu className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-xl font-bold text-gradient">Driver Hub</h1>
-              <p className="text-sm text-muted-foreground">Welcome back, driver!</p>
-            </div>
+      <div className="glass-card rounded-none border-b border-white/10 p-3">
+        <div className="flex items-center justify-between px-4">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-black text-gradient">Driver Hub</h1>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground ml-4">Online: {isOnline ? '✓' : '✗'}</p>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <span className={`text-sm ${isOnline ? "text-success" : "text-muted-foreground"}`}>
-                {isOnline ? "Online" : "Offline"}
-              </span>              {hasActiveRide && (
-                <span className="ml-2 text-sm text-amber-500 font-medium">On Ride</span>
-              )}              <Switch checked={isOnline} onCheckedChange={handleToggleOnline} />
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-medium ${isOnline ? 'text-teal-400' : 'text-muted-foreground'}`}>
+                {isOnline ? 'ONLINE' : 'OFFLINE'}
+              </span>
+              <Switch checked={isOnline} onCheckedChange={handleToggleOnline} />
             </div>
-            <div className="relative">
-              <Button variant="ghost" size="icon">
-                <Settings className="w-5 h-5" />
-              </Button>
-              {pendingRequests.length > 0 && (
-                <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">
-                  {pendingRequests.length}
-                </div>
-              )}
-            </div>
+            <Button variant="ghost" size="icon" className="hover:bg-white/10">
+              <Settings className="w-5 h-5" />
+            </Button>
+            {pendingRequests.length > 0 && (
+              <div className="ml-2 px-2 py-1 bg-red-500/20 border border-red-500/30 rounded text-red-400 text-xs font-medium">
+                {pendingRequests.length} requests
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 space-y-6">
-        {/* the rest of UI unmodified */}
-        {isOnline && (
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="flex items-center text-lg">
-                  <div className="w-3 h-3 bg-success rounded-full mr-2 animate-pulse"></div>
-                  You're Online
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-6">
-                  <Car className="w-16 h-16 mx-auto mb-4 text-primary animate-pulse-glow" />
-                  {hasActiveRide ? (
-                    <>
-                      <p className="text-lg font-medium mb-2">Active Ride</p>
-                      <p className="text-muted-foreground">Driving to destination</p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-lg font-medium mb-2">Looking for Rides</p>
-                      <p className="text-muted-foreground">Stay tuned for ride requests</p>
-                    </>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+      {/* Main Layout: Left (Stats) | Center (Requests) | Right (Map) */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* LEFT: Stats Panel */}
+        <div className="w-64 bg-slate-900/50 border-r border-white/10 p-4 overflow-y-auto">
+          <h2 className="text-lg font-bold mb-4">Today's Stats</h2>
+          <div className="space-y-3">
+            {/* Earnings */}
+            <div className="glass-card p-3 text-center">
+              <DollarSign className="w-6 h-6 mx-auto mb-2 text-teal-400" />
+              <div className="text-2xl font-bold text-gradient">₹{(todayStats.earnings/100).toFixed(2)}</div>
+              <div className="text-xs text-muted-foreground mt-1">Earnings</div>
+            </div>
 
+            {/* Rides */}
+            <div className="glass-card p-3 text-center">
+              <Car className="w-6 h-6 mx-auto mb-2 text-blue-400" />
+              <div className="text-2xl font-bold">{todayStats.rides}</div>
+              <div className="text-xs text-muted-foreground mt-1">Rides</div>
+            </div>
+
+            {/* Hours */}
+            <div className="glass-card p-3 text-center">
+              <Clock className="w-6 h-6 mx-auto mb-2 text-purple-400" />
+              <div className="text-2xl font-bold">{todayStats.hours}h</div>
+              <div className="text-xs text-muted-foreground mt-1">Hours Driving</div>
+            </div>
+
+            {/* Rating */}
+            <div className="glass-card p-3 text-center">
+              <Star className="w-6 h-6 mx-auto mb-2 fill-yellow-500 text-yellow-500" />
+              <div className="text-2xl font-bold">{todayStats.rating}</div>
+              <div className="text-xs text-muted-foreground mt-1">Rating</div>
+            </div>
+
+            {/* Active Ride Info */}
             {hasActiveRide && currentRide && (
-              <Card className="glass-card">
-                <CardHeader>
-                  <CardTitle className="text-lg">Current Ride</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
-                        <User className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <div className="font-medium">{currentRide.rider?.name || "Rider"}</div>
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Star className="w-3 h-3 text-yellow-500 mr-1" />
-                          {currentRide.rider?.rating || 5}
-                        </div>
-                      </div>
+              <>
+                <div className="pt-4 border-t border-white/10">
+                  <p className="text-xs uppercase text-muted-foreground mb-2">Active Ride</p>
+                  <div className="glass-card p-3 space-y-2 text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Passenger</p>
+                      <p className="font-medium">{currentRide.rider?.name || 'Rider'}</p>
                     </div>
-                    <div className="flex space-x-2">
-                      <Button size="sm" variant="outline">
-                        <Phone className="w-4 h-4" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Fare</p>
+                      <p className="font-bold text-gradient">{currentRide.fare ? `₹${(currentRide.fare/100).toFixed(2)}` : '-'}</p>
+                    </div>
+                    <div className="pt-2 space-y-1">
+                      <Button size="sm" className="w-full btn-gradient text-xs h-8" onClick={isNavigating ? handleStopNavigation : handleStartNavigation}>
+                        {isNavigating ? 'Stop Navigation' : 'Start Navigation'}
                       </Button>
-                      <Button size="sm" variant="outline">
-                        <MessageCircle className="w-4 h-4" />
+                      <Button size="sm" className="w-full bg-blue-600 text-xs h-8" onClick={handleOpenGoogleMaps}>
+                        Google Maps
                       </Button>
                     </div>
                   </div>
+                </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">From:</span>
-                      <span className="font-medium">{currentRide.pickup?.address || "-"}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">To:</span>
-                      <span className="font-medium">{currentRide.destination?.address || "-"}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Distance:</span>
-                      <span className="font-medium">{currentRide.distanceKm ?? "-" } km</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">ETA:</span>
-                      <span className="font-medium">{currentRide.estimatedTimeMin ?? "-"} min</span>
+                {/* OTP Input */}
+                {currentRide?.status === 'accepted' && (
+                  <div className="pt-2">
+                    <label className="text-xs uppercase text-muted-foreground">Verify OTP</label>
+                    <div className="flex gap-2 mt-2">
+                      <Input
+                        placeholder="6-digit OTP"
+                        value={otpInput}
+                        onChange={(e) => setOtpInput(e.target.value)}
+                        className="bg-slate-800 border-white/10 text-sm h-8"
+                        maxLength={6}
+                      />
+                      <Button size="sm" variant="outline" className="h-8 px-2 text-xs" onClick={regenerateOtp}>
+                        New OTP
+                      </Button>
+                      <Button size="sm" className="btn-gradient h-8 px-3" onClick={startRide} disabled={(otpInput || '').trim().length !== 6}>
+                        Start
+                      </Button>
                     </div>
                   </div>
+                )}
 
-                  <div className="pt-4 border-t">
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-lg font-medium">Fare:</span>
-                      <span className="text-2xl font-bold text-gradient">{currentRide.fare ? `₹${(currentRide.fare/100).toFixed(2)}` : "-"}</span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-3">
-                      <Button variant="outline" onClick={isNavigating ? handleStopNavigation : handleStartNavigation}>
-                        <Navigation className="w-4 h-4 mr-2" />
-                        {isNavigating ? 'Stop' : 'Start'}
-                      </Button>
-
-                      <Button variant="outline" onClick={handleOpenGoogleMaps}>
-                        <MapPin className="w-4 h-4 mr-2" />
-                        Open in Google Maps
-                      </Button>
-
-                      <Button className="btn-gradient" onClick={handleCompleteRide} disabled={currentRide?.status !== 'started'}>
-                        Complete Ride
-                      </Button>
-                    </div>
-
-                    {/* OTP verification (driver enters OTP shown to rider) */}
-                    {currentRide?.status === 'accepted' && (
-                      <div className="mt-4">
-                        <div className="flex items-center space-x-2">
-                          <Input placeholder="Enter OTP" value={otpInput} onChange={(e) => setOtpInput((e.target as HTMLInputElement).value)} />
-                        <Button className="btn-gradient" onClick={startRide} disabled={(otpInput || '').trim().length !== 6}>Start Ride</Button>
-                        </div>
-                        <div className="mt-2 text-sm text-muted-foreground">Enter the rider's OTP and click <strong>Start Ride</strong> to enable completing the ride.</div>
-                      </div>
-                    )}
-
-                    {/* In-app navigation steps */}
-                    {isNavigating && routeSteps && routeSteps.length > 0 && (
-                      <div className="mt-3 p-3 bg-muted rounded-md max-h-48 overflow-auto">
-                        <div className="text-sm text-muted-foreground mb-2">Navigation</div>
-                        <ol className="list-decimal list-inside space-y-2">
-                          {routeSteps.map((s, i) => (
-                            <li key={i} className={`${i === currentNavStep ? 'font-medium text-primary' : 'text-sm text-muted-foreground'}`}>
-                              {s.instruction} <span className="text-xs text-muted-foreground">• {(s.distance/1000).toFixed(2)} km • {Math.round(s.duration/60)} min</span>
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                {/* Complete / Actions */}
+                {currentRide?.status === 'started' && (
+                  <Button size="sm" className="w-full bg-green-600 mt-2 text-xs h-8" onClick={handleCompleteRide}>
+                    Complete Ride
+                  </Button>
+                )}
+              </>
             )}
           </div>
-        )}
+        </div>
 
-        {/* Incoming requests panel */}
-        {pendingRequests.length > 0 && (
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle>Incoming Ride Requests</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {pendingRequests.map((req) => {
-                  const pickupCoords = req.pickup?.location?.coordinates as [number, number] | undefined;
-                  const distKm = computeDistanceKm(driverMarkerPosition as any, pickupCoords as any);
-                  const etaMin = distKm ? Math.max(1, Math.round((distKm / 40) * 60)) : null; // assume 40 km/h avg
-                  return (
-                  <div key={req.bookingId} className="flex items-center justify-between p-3 rounded-md border">
-                    <div>
-                      <div className="font-medium">{req.riderInfo?.name || 'Rider'}</div>
-                      <div className="text-sm text-muted-foreground">Pickup: {req.pickup?.address || "—"}</div>
-                      <div className="text-sm text-muted-foreground">Drop: {req.destination?.address || "—"}</div>
-                      <div className="text-sm mt-1">Fare: {req.fare ? `₹${(req.fare/100).toFixed(2)}` : "-"} {distKm ? <span className="ml-2 text-xs text-muted-foreground">• {distKm.toFixed(1)} km • {etaMin} min</span> : null}</div>
+        {/* CENTER: Incoming Requests */}
+        <div className="w-72 bg-slate-900/30 border-r border-white/10 p-4 overflow-y-auto">
+          <h2 className="text-lg font-bold mb-4">Requests</h2>
+          {pendingRequests.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p className="text-sm">No incoming requests</p>
+              <p className="text-xs mt-2">Stay online to receive ride requests</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {pendingRequests.map((req) => {
+                const pickupCoords = req.pickup?.location?.coordinates as [number, number] | undefined;
+                const distKm = computeDistanceKm(driverMarkerPosition as any, pickupCoords as any);
+                const etaMin = distKm ? Math.max(1, Math.round((distKm / 40) * 60)) : null;
+                return (
+                  <div key={req.bookingId} className="glass-card p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold text-sm">{req.riderInfo?.name || 'Rider'}</p>
+                      <span className="text-xs bg-teal-500/20 text-teal-400 px-2 py-1 rounded">₹{req.fare ? (req.fare/100).toFixed(2) : '-'}</span>
                     </div>
-                    <div className="space-x-2">
-                      <Button size="sm" variant="outline" onClick={() => setPendingRequests((p) => p.filter((x) => x.bookingId !== req.bookingId))}>
+                    <div className="text-xs space-y-1 text-muted-foreground">
+                      <p className="truncate">📍 {req.pickup?.address || '—'}</p>
+                      <p className="truncate">🎯 {req.destination?.address || '—'}</p>
+                      {distKm && <p className="text-teal-400">⏱ {distKm.toFixed(1)} km • {etaMin} min away</p>}
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="flex-1 h-7 text-xs"
+                        onClick={() => setPendingRequests((p) => p.filter((x) => x.bookingId !== req.bookingId))}
+                      >
                         Decline
                       </Button>
-                      <Button size="sm" className="btn-gradient" onClick={() => { setModalRequest(req); setAcceptModalOpen(true); }}>
+                      <Button 
+                        size="sm" 
+                        className="flex-1 btn-gradient h-7 text-xs"
+                        onClick={() => { setModalRequest(req); setAcceptModalOpen(true); }}
+                      >
                         Accept
                       </Button>
                     </div>
                   </div>
-                )})}
-              </div>
-            </CardContent>
-
-            {/* Accept modal */}
-            <Dialog open={acceptModalOpen} onOpenChange={setAcceptModalOpen}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Accept Ride Request</DialogTitle>
-                  <DialogDescription>
-                    Confirm accepting this ride request. Driver will be assigned and rider will be notified.
-                  </DialogDescription>
-                </DialogHeader>
-
-                <div className="py-4">
-                  <div className="font-medium">{modalRequest?.riderInfo?.name || 'Unknown Rider'}</div>
-                  <div className="text-sm text-muted-foreground">Pickup: {modalRequest?.pickup?.address || '—'}</div>
-                  <div className="text-sm text-muted-foreground">Drop: {modalRequest?.destination?.address || '—'}</div>
-                </div>
-
-                <DialogFooter>
-                  <div className="flex items-center space-x-2">
-                    <Button variant="outline" onClick={() => setAcceptModalOpen(false)}>Cancel</Button>
-                    <Button className={`btn-gradient ${accepting ? 'opacity-80' : ''}`} onClick={confirmAccept} disabled={accepting}>
-                      {accepting ? 'Accepting...' : 'Confirm Accept'}
-                    </Button>
-                  </div>
-                </DialogFooter>
-
-                {accepted && (
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="bg-white/90 rounded-full p-6 flex items-center justify-center">
-                      <svg className="w-12 h-12 text-success animate-scale-in" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M20 6L9 17l-5-5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </div>
-                  </div>
-                )}
-              </DialogContent>
-            </Dialog>
-          </Card>
-        )}
-
-        {/* Today's stats and map area untouched for UI */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="glass-card">
-            <CardContent className="p-4 text-center">
-              <DollarSign className="w-8 h-8 mx-auto mb-2 text-success" />
-              <div className="text-2xl font-bold text-gradient">₹{(todayStats.earnings/100).toFixed(2)}</div>
-              <div className="text-sm text-muted-foreground">Today's Earnings</div>
-            </CardContent>
-          </Card>
-          <Card className="glass-card">
-            <CardContent className="p-4 text-center">
-              <Car className="w-8 h-8 mx-auto mb-2 text-primary" />
-              <div className="text-2xl font-bold">{todayStats.rides}</div>
-              <div className="text-sm text-muted-foreground">Rides Completed</div>
-            </CardContent>
-          </Card>
-          <Card className="glass-card">
-            <CardContent className="p-4 text-center">
-              <Clock className="w-8 h-8 mx-auto mb-2 text-primary-blue" />
-              <div className="text-2xl font-bold">{todayStats.hours}h</div>
-              <div className="text-sm text-muted-foreground">Hours Driving</div>
-            </CardContent>
-          </Card>
-          <Card className="glass-card">
-            <CardContent className="p-4 text-center">
-              <Star className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
-              <div className="text-2xl font-bold">{todayStats.rating}</div>
-              <div className="text-sm text-muted-foreground">Rating</div>
-            </CardContent>
-          </Card>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        <Card className="glass-card">
-          <CardHeader>
-            <CardTitle className="flex items-center text-lg">
-              <TrendingUp className="w-5 h-5 mr-2 text-success" />
-              Weekly Earnings
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {(() => {
-                const maxEarn = Math.max(...weeklyStats.map((s) => s.earnings), 1);
-                return (
-                  <div className="grid grid-cols-7 gap-2">
-                    {weeklyStats.map((stat, index) => (
-                      <div key={index} className="text-center">
-                        <div className="text-xs text-muted-foreground mb-2">{stat.day}</div>
-                        <div className="bg-primary/20 rounded-lg mx-auto relative overflow-hidden" style={{ height: "100px", width: "40px" }}>
-                          <div
-                            className="absolute bottom-0 left-0 right-0 rounded-lg transition-all duration-1000"
-                            style={{
-                              height: `${(stat.earnings / maxEarn) * 100}%`,
-                              background: "var(--gradient-primary)",
-                            }}
-                          />
-                        </div>
-                        <div className="text-xs font-medium mt-2">₹{(stat.earnings/100).toFixed(2)}</div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
-              <div className="flex justify-between items-center pt-4 border-t">
-                <div>
-                  <div className="text-sm text-muted-foreground">Total This Week</div>
-                  <div className="text-2xl font-bold text-gradient">₹{(weeklyStats.reduce((sum, day) => sum + day.earnings, 0) / 100).toFixed(2)}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm text-muted-foreground">Average Per Day</div>
-                  <div className="text-xl font-semibold">
-                    ₹{((weeklyStats.reduce((sum, day) => sum + day.earnings, 0) / 7) / 100).toFixed(2)}
-                  </div>
-                </div>
+        {/* RIGHT: Map */}
+        <div className="flex-1">
+          <Map
+            ref={mapRef}
+            mapboxAccessToken={MAPBOX_TOKEN}
+            initialViewState={{
+              longitude: driverMarkerPosition?.[0] ?? 77.209,
+              latitude: driverMarkerPosition?.[1] ?? 28.6139,
+              zoom: 12,
+            }}
+            style={{ width: "100%", height: "100%" }}
+            mapStyle="mapbox://styles/mapbox/dark-v11"
+          >
+            {/* Driver marker */}
+            {driverMarkerPosition && (
+              <Marker longitude={driverMarkerPosition[0]} latitude={driverMarkerPosition[1]}>
+                <div className="text-3xl animate-pulse">🚗</div>
+              </Marker>
+            )}
+
+            {/* Rider live marker */}
+            {riderLiveLocation && (
+              <Marker longitude={riderLiveLocation[0]} latitude={riderLiveLocation[1]}>
+                <div className="text-2xl">🧍</div>
+              </Marker>
+            )}
+
+            {/* Pending request pickup markers */}
+            {pendingRequests.map((r) => {
+              const coords = r.pickup?.location?.coordinates;
+              if (!coords) return null;
+              return (
+                <Marker key={r.bookingId} longitude={coords[0]} latitude={coords[1]}>
+                  <div title={`Pickup: ${r.pickup?.address || ''}`} className="text-2xl">📍</div>
+                </Marker>
+              );
+            })}
+
+            {/* Route polyline */}
+            {routeGeoJSON && (
+              <Source id="route" type="geojson" data={routeGeoJSON}>
+                <Layer
+                  id="route-line"
+                  type="line"
+                  paint={{
+                    "line-color": "#3b82f6",
+                    "line-width": 5,
+                  }}
+                />
+              </Source>
+            )}
+          </Map>
+        </div>
+      </div>
+
+      {/* Accept modal */}
+      <Dialog open={acceptModalOpen} onOpenChange={setAcceptModalOpen}>
+        <DialogContent className="bg-slate-900 border-white/10">
+          <DialogHeader>
+            <DialogTitle>Accept Ride Request?</DialogTitle>
+            <DialogDescription>
+              Confirm accepting this ride. {modalRequest?.riderInfo?.name} will be notified.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4 space-y-3">
+            <div className="glass-card p-3">
+              <p className="text-sm font-semibold">{modalRequest?.riderInfo?.name || 'Unknown Rider'}</p>
+              <p className="text-xs text-muted-foreground mt-1">📍 From: {modalRequest?.pickup?.address || '—'}</p>
+              <p className="text-xs text-muted-foreground">🎯 To: {modalRequest?.destination?.address || '—'}</p>
+              <p className="text-sm font-bold text-teal-400 mt-2">Fare: ₹{modalRequest?.fare ? (modalRequest.fare/100).toFixed(2) : '-'}</p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAcceptModalOpen(false)}>Cancel</Button>
+            <Button className={`btn-gradient ${accepting ? 'opacity-70' : ''}`} onClick={confirmAccept} disabled={accepting}>
+              {accepting ? 'Accepting...' : 'Accept Ride'}
+            </Button>
+          </DialogFooter>
+
+          {accepted && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
+              <div className="bg-slate-900 rounded-full p-8 border border-white/10">
+                <svg className="w-16 h-16 text-green-500 animate-scale-in" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M20 6L9 17l-5-5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Map area */}
-        <Card className="glass-card">
-          <CardContent className="p-0">
-            <div className="h-80 lg:h-[480px]">
-              <Map
-                ref={mapRef}
-                mapboxAccessToken={MAPBOX_TOKEN}
-                initialViewState={{
-                  longitude: driverMarkerPosition?.[0] ?? 77.209,
-                  latitude: driverMarkerPosition?.[1] ?? 28.6139,
-                  zoom: 12,
-                }}
-                style={{ width: "100%", height: "100%" }}
-                mapStyle="mapbox://styles/mapbox/streets-v11"
-              >
-                {/* Driver marker */}
-                {driverMarkerPosition && (
-                  <Marker longitude={driverMarkerPosition[0]} latitude={driverMarkerPosition[1]}>
-                    <div className="text-2xl">🚗</div>
-                  </Marker>
-                )}
-
-                {/* Rider live marker */}
-                {riderLiveLocation && (
-                  <Marker longitude={riderLiveLocation[0]} latitude={riderLiveLocation[1]}>
-                    <div className="text-2xl">🧍</div>
-                  </Marker>
-                )}
-
-                {/* Pending request pickup markers */}
-                {pendingRequests.map((r) => {
-                  const coords = r.pickup?.location?.coordinates;
-                  if (!coords) return null;
-                  return (
-                    <Marker key={r.bookingId} longitude={coords[0]} latitude={coords[1]}>
-                      <div title={`Pickup: ${r.pickup?.address || ''}`} className="text-2xl">📍</div>
-                    </Marker>
-                  );
-                })}
-
-                {/* Route polyline */}
-                {routeGeoJSON && (
-                  <Source id="route" type="geojson" data={routeGeoJSON}>
-                    <Layer
-                      id="route-line"
-                      type="line"
-                      paint={{
-                        "line-color": "#3b82f6",
-                        "line-width": 5,
-                      }}
-                    />
-                  </Source>
-                )}
-              </Map>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 export default DriverDashboard;
+

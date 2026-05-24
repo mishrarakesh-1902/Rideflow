@@ -74,8 +74,9 @@ const AuthForm: React.FC = () => {
         navigate("/");
       }
     } catch (error: any) {
+      const errMsg = error.response?.data?.message || error.response?.data?.error || error.message;
       console.error("Login error:", error.response?.data || error.message);
-      alert(error.response?.data?.error || "Login failed");
+      alert(errMsg || "Login failed");
     }
   };
 
@@ -103,27 +104,45 @@ const AuthForm: React.FC = () => {
       console.log("Signup successful:", response.data);
       alert("Signup successful! You can now login.");
     } catch (error: any) {
+      const errMsg = error.response?.data?.message || error.response?.data?.error || error.message;
       console.error("Signup error:", error.response?.data || error.message);
-      alert(error.response?.data?.error || "Signup failed");
+      alert(errMsg || "Signup failed");
     }
   };
 
   return (
-    <div className="min-h-screen animated-bg flex items-center justify-center p-4">
-      <Card className="glass-card w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-gradient mb-2">
-            Welcome to RideFlow
-          </CardTitle>
-          <p className="text-muted-foreground">Join the future of transportation</p>
-        </CardHeader>
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <section className="space-y-6">
+          <p className="text-sm uppercase tracking-widest text-muted-foreground">RideFlow</p>
+          <h1 className="text-4xl lg:text-5xl font-black">The kinetic pulse of modern logistics.</h1>
+          <p className="text-lg text-muted-foreground max-w-lg">
+            Join the elite network of riders and drivers moving the world forward with precision and speed. Optimize route flow, earn more, and ride safely.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="glass-card p-4">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Secure</p>
+              <p className="font-semibold">Bank-grade encrypted auth</p>
+            </div>
+            <div className="glass-card p-4">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Live</p>
+              <p className="font-semibold">Real-time driver tracking</p>
+            </div>
+          </div>
+        </section>
 
-        <CardContent>
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
-            </TabsList>
+        <Card className="glass-card w-full">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold text-gradient mb-2">Get Started</CardTitle>
+            <p className="text-muted-foreground">Choose your path in the ecosystem</p>
+          </CardHeader>
+
+          <CardContent>
+            <Tabs defaultValue="login" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-6 rounded-xl overflow-hidden border border-border">
+                <TabsTrigger value="login">Login</TabsTrigger>
+                <TabsTrigger value="register">Register</TabsTrigger>
+              </TabsList>
 
             {/* Login Form */}
             <TabsContent value="login" className="space-y-4">
@@ -304,6 +323,7 @@ const AuthForm: React.FC = () => {
         </CardContent>
       </Card>
     </div>
+  </div>
   );
 };
 

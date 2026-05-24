@@ -14,6 +14,9 @@ router.patch('/:id/accept', auth, role(['driver']), ctrl.acceptBooking);
 // driver verifies OTP and starts ride
 router.patch('/:id/verify-otp', auth, role(['driver']), ctrl.verifyOtpAndStart);
 
+// driver regenerates OTP
+router.patch('/:id/regenerate-otp', auth, role(['driver']), ctrl.regenerateOtp);
+
 // driver completes booking
 router.patch('/:id/complete', auth, role(['driver']), ctrl.completeRide);
 

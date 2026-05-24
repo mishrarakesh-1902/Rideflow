@@ -235,7 +235,7 @@ exports.requestRide = async (req, res) => {
         estimatedTimeMin,
         paymentMethod,
         status: paymentMethod === 'online' ? 'pending_payment' : 'requested',
-        requestedAt: new Date(),
+        createdAt: new Date(),
       });
       console.log('✅ booking created:', booking._id);
     } catch (createErr) {
@@ -305,7 +305,7 @@ exports.acceptBooking = async (req, res) => {
     booking.driver = driver._id;
     booking.status = 'accepted';
     booking.otp = otp;
-    booking.otpExpiresAt = new Date(Date.now() + (10 * 60 * 1000)); // valid 10 minutes
+    booking.otpExpiresAt = new Date(Date.now() + (30 * 60 * 1000)); // valid 30 minutes (increased from 10)
     booking.otpVerified = false;
     await booking.save();
     console.log('✅ Booking accepted:', booking._id.toString(), 'by driver', driver._id.toString(), 'otp:', otp);
@@ -347,7 +347,45 @@ exports.acceptBooking = async (req, res) => {
   }
 };
 
-// Verify OTP and start ride (driver)
+// Regenerate OTP for expired bookings (driver)
+exports.regenerateOtp = async (req, res) => {
+  try {
+    const bookingId = req.params.id;
+    const driver = req.user;
+    if (driver.role !== 'driver') return res.status(403).json({ message: 'Only drivers' });
+
+    const booking = await Booking.findById(bookingId);
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    if (!booking.driver || booking.driver.toString() !== driver._id.toString()) return res.status(403).json({ message: 'Not your booking' });
+    if (booking.status !== 'accepted') return res.status(400).json({ message: 'Booking not in accepted state' });
+
+    // generate a new 6-digit OTP
+    const newOtp = String(Math.floor(100000 + Math.random() * 900000));
+    booking.otp = newOtp;
+    booking.otpExpiresAt = new Date(Date.now() + (30 * 60 * 1000)); // valid 30 minutes
+    booking.otpVerified = false;
+    await booking.save();
+
+    console.log('✅ OTP regenerated:', booking._id.toString(), 'new otp:', newOtp);
+
+    // notify rider with new OTP
+    const helpers = require('../socket').helpers || {};
+    try {
+      helpers.emitToUser(booking.rider, 'otp:regenerated', {
+        bookingId: booking._id,
+        newOtp,
+        expiresAt: booking.otpExpiresAt
+      });
+    } catch (e) {
+      console.warn('⚠️ notify rider about new OTP failed', e.message);
+    }
+
+    res.json({ booking, newOtp });
+  } catch (err) {
+    console.error('regenerateOtp error', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
 exports.verifyOtpAndStart = async (req, res) => {
   try {
     const bookingId = req.params.id;
@@ -449,7 +487,7 @@ exports.getBookingsForUser = async (req, res) => {
     const user = req.user;
     const bookings = await Booking.find({ rider: user._id })
       .populate('driver', 'name phone rating vehicle location')
-      .sort({ requestedAt: -1 });
+      .sort({ createdAt: -1 });
     res.json({ bookings });
   } catch (err) {
     console.error(err);
@@ -487,7 +525,9 @@ exports.dashboardForDriver = async (req, res) => {
     // refresh driver from DB to get up-to-date rating and online status
     const driver = await User.findById(user._id).select('-password');
 
-    const activeRide = await Booking.findOne({ driver: user._id, status: { $in: ['accepted','started'] } }).populate('rider', 'name rating');
+    const activeRide = await Booking.findOne({ driver: user._id, status: { $in: ['accepted','started'] } })
+      .sort({ createdAt: -1 })
+      .populate('rider', 'name rating');
 
     // compute stats: earnings and rides for today and last 7 days, and total driving hours (sum of ride durations)
     const now = new Date();
