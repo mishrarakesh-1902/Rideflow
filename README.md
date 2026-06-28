@@ -64,7 +64,8 @@
 
 > Dark navy homepage with gradient hero text, inline ride booking card (Pickup → Destination → Ride Type), live fare estimate, ETA display, and live stats (500K+ Users · 50K+ Drivers · 4.9★).
 
-![RideFlow Hero](screenshots/rideflow_hero.png)
+<img width="1568" height="767" alt="image" src="https://github.com/user-attachments/assets/3d96e791-aa95-476c-a5cc-32181aadb2e5" />
+
 
 ---
 
@@ -72,7 +73,8 @@
 
 > Riders enter a pickup location and get real-time Mapbox autocomplete suggestions. The interactive dark map shows the driver pin live. Ride tiers (Economy ₹8.50 · Standard ₹12.50 · Premium ₹18.00) and ETA are shown alongside payment method (Visa ● 4242).
 
-![RideFlow Booking Map](screenshots/rideflow_booking.png)
+<img width="1568" height="763" alt="image" src="https://github.com/user-attachments/assets/44847995-f39c-4c80-a17a-60950f03dba1" />
+
 
 ---
 
@@ -80,7 +82,8 @@
 
 > Dedicated driver interface showing today's stats (Earnings · Rides · Hours Driving · Rating), an incoming Requests panel with a live Mapbox map showing the driver's current position updated in real-time via Socket.IO.
 
-![RideFlow Driver Hub](screenshots/rideflow_driver.png)
+<img width="1568" height="710" alt="image" src="https://github.com/user-attachments/assets/a1de5f6e-68fc-4afd-8ef2-4e3e7f6b6585" />
+
 
 ---
 
