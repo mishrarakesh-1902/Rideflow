@@ -171,6 +171,10 @@
 //   });
 
 
+const dns = require('dns');
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
@@ -226,6 +230,11 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+const copilotLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+});
+
 // ✅ Root route (for Render health check)
 app.get("/", (req, res) => {
   res.send("🚀 Rideflow backend is running successfully!");
@@ -233,11 +242,13 @@ app.get("/", (req, res) => {
 
 // ✅ All main routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', require('./src/routes/users.routes'));
 app.use('/api/driver', driverRoutes);
 app.use('/api/rides', rideRoutes);
 app.use('/api/bookings', require('./src/routes/bookings.routes'));
 app.use('/api/payments', paymentRoutes);
 app.use('/api/mapbox', mapboxRoutes);
+app.use('/api/copilot', copilotLimiter, require('./src/routes/copilot.routes'));
 
 // ✅ Health check endpoint
 app.get('/api/health', (req, res) => res.json({ ok: true }));

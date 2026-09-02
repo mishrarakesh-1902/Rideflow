@@ -46,6 +46,26 @@ exports.login = async (req, res) => {
 };
 
 exports.me = async (req, res) => {
-  const user = req.user;
-  res.json({ user });
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    res.json({ user: user || req.user });
+  } catch (err) {
+    res.json({ user: req.user });
+  }
+};
+
+exports.updateMe = async (req, res) => {
+  try {
+    const { name, phone, vehicle } = req.body;
+    const updates = {};
+    if (name !== undefined) updates.name = name.trim();
+    if (phone !== undefined) updates.phone = phone.trim();
+    if (vehicle !== undefined) updates.vehicle = vehicle.trim();
+
+    const user = await User.findByIdAndUpdate(req.user._id, updates, { new: true }).select('-password');
+    res.json({ user, message: 'Profile updated successfully' });
+  } catch (err) {
+    console.error('updateMe error:', err);
+    res.status(500).json({ message: 'Failed to update profile', error: err.message });
+  }
 };

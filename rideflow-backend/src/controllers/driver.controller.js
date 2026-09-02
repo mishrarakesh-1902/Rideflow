@@ -33,10 +33,23 @@ exports.toggleStatus = async (req, res) => {
   const driver = await User.findById(user._id);
   driver.isOnline = !driver.isOnline;
   await driver.save();
-  // notify via socket
+  // notify via socket and manage room
   try {
-    const { io } = require('../socket');
-    io.to(`user:${driver._id}`).emit('driver:status', { isOnline: driver.isOnline });
+    const { io, userSocketMap } = require('../socket');
+    const socketId = userSocketMap ? userSocketMap.get(driver._id.toString()) : null;
+    if (socketId && io) {
+      const sock = io.sockets.sockets.get(socketId);
+      if (sock) {
+        if (driver.isOnline) {
+          sock.join('drivers');
+        } else {
+          sock.leave('drivers');
+        }
+      }
+    }
+    if (io) {
+      io.to(`user:${driver._id}`).emit('driver:status', { isOnline: driver.isOnline });
+    }
   } catch (e) {}
   res.json({ isOnline: driver.isOnline });
 };

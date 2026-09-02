@@ -1,4 +1,4 @@
-﻿// src/components/DriverDashboard.tsx
+// src/components/DriverDashboard.tsx
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -18,14 +18,17 @@ import {
   Navigation,
   Phone,
   MessageCircle,
+  History,
 } from "lucide-react";
 import api from "@/services/api";
 import { initSocket, getSocket } from "@/services/socket";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-
 import Map, { Marker, Source, Layer } from "react-map-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import ProfileModal from "./ProfileModal";
+import RideHistoryModal from "./RideHistoryModal";
+import CopilotChat from "./CopilotChat";
 
 type RideRequest = {
   bookingId: string;
@@ -37,7 +40,22 @@ type RideRequest = {
 };
 
 const DriverDashboard = () => {
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "null");
+    } catch {
+      return null;
+    }
+  });
+
   const [isOnline, setIsOnline] = useState(true);
+  const isOnlineRef = useRef(isOnline);
+  useEffect(() => {
+    isOnlineRef.current = isOnline;
+  }, [isOnline]);
+
   const [hasActiveRide, setHasActiveRide] = useState(false);
   const [todayStats, setTodayStats] = useState({ earnings: 0, rides: 0, hours: 0, rating: 5 });
   const [weeklyStats, setWeeklyStats] = useState<any[]>([]);
@@ -176,7 +194,12 @@ const DriverDashboard = () => {
     try {
       const res = await api.get("/bookings/driver/dashboard");
       const data = res.data;
-      setIsOnline(data.driver?.isOnline ?? true);
+      const driverOnline = data.driver?.isOnline ?? true;
+      setIsOnline(driverOnline);
+      isOnlineRef.current = driverOnline;
+      if (!driverOnline) {
+        setPendingRequests([]);
+      }
       if (data.driver?.location?.coordinates) {
         setLocation({
           lng: data.driver.location.coordinates[0],
@@ -184,15 +207,24 @@ const DriverDashboard = () => {
         });
         setDriverMarkerPosition([data.driver.location.coordinates[0], data.driver.location.coordinates[1]]);
       }
-      setCurrentRide(data.activeRide);
-      setHasActiveRide(!!data.activeRide);
+      if (!data.activeRide) {
+        setCurrentRide(null);
+        setHasActiveRide(false);
+        setRouteGeoJSON(null);
+        setRiderLiveLocation(null);
+        setIsNavigating(false);
+        setOtpInput('');
+      } else {
+        setCurrentRide(data.activeRide);
+        setHasActiveRide(true);
+        if (data.activeRide.pickup?.location?.coordinates && data.activeRide.destination?.location?.coordinates) {
+          const pickupCoords = data.activeRide.pickup.location.coordinates;
+          const destCoords = data.activeRide.destination.location.coordinates;
+          fetchAndSetRoute(pickupCoords, destCoords);
+        }
+      }
       setTodayStats(data.todayStats ?? todayStats);
       setWeeklyStats(data.weeklyStats ?? []);
-      if (data.activeRide && data.activeRide.pickup?.location?.coordinates && data.activeRide.destination?.location?.coordinates) {
-        const pickupCoords = data.activeRide.pickup.location.coordinates;
-        const destCoords = data.activeRide.destination.location.coordinates;
-        fetchAndSetRoute(pickupCoords, destCoords);
-      }
     } catch (err: any) {
       console.error('fetchDashboard error', err?.response?.status, err?.response?.data, err?.message);
 
@@ -218,7 +250,7 @@ const DriverDashboard = () => {
     // Join drivers room
     socket.on("connect", () => {
       console.log("Driver socket connected:", socket.id);
-      socket.emit("driver:join");
+      socket.emit("driver:join", { isOnline: isOnlineRef.current });
       // ensure dashboard is up-to-date in case we missed any events while disconnected
       try { fetchDashboard(); } catch (e) { console.warn('fetchDashboard on socket connect failed', e); }
     });
@@ -226,6 +258,10 @@ const DriverDashboard = () => {
     // Listen for ride requests (server emits 'ride:request' to drivers room)
 
     const onRideRequest = (payload: any) => {
+      if (!isOnlineRef.current) {
+        console.log("Ignoring ride request because driver is OFFLINE:", payload);
+        return;
+      }
       console.log("Incoming ride request:", payload);
       const normalized: RideRequest = {
         bookingId: payload.bookingId,
@@ -288,29 +324,41 @@ const DriverDashboard = () => {
     };
     socket.on("ride:confirmed", onRideConfirmed);
 
-    // Silent refresh when rider cancels — do not show cancellation UI, just refresh dashboard quietly
-    const onDriverBookingCleared = (payload: any) => {
+    // Handle rider cancellation: clear active ride UI and notify driver
+    const onBookingCancelled = (payload: any) => {
       try {
-        console.log('driver:booking-cleared received', payload);
-        // If this pertains to our current ride, clear local active ride UI and refresh quietly
-        if (payload?.bookingId) {
-          setCurrentRide(null);
-          setHasActiveRide(false);
-          setRouteGeoJSON(null);
-          setRiderLiveLocation(null);
-          // quietly refresh dashboard state
-          try { fetchDashboard(); } catch (e) { console.warn('fetchDashboard after driver:booking-cleared failed', e); }
+        console.log('Driver: booking cancelled / cleared received:', payload);
+        setCurrentRide(null);
+        setHasActiveRide(false);
+        setRouteGeoJSON(null);
+        setRiderLiveLocation(null);
+        setIsNavigating(false);
+        setOtpInput('');
+        setPendingRequests((prev) =>
+          prev.filter((r) => !payload?.bookingId || String(r.bookingId) !== String(payload.bookingId))
+        );
+        toast({
+          title: 'Ride Cancelled',
+          description: 'The rider has cancelled this ride request.',
+        });
+        try {
+          fetchDashboard();
+        } catch (e) {
+          console.warn('fetchDashboard after cancellation failed', e);
         }
       } catch (e) {}
     };
-    socket.on('driver:booking-cleared', onDriverBookingCleared);
+
+    socket.on('driver:booking-cleared', onBookingCancelled);
+    socket.on('booking:cancelled', onBookingCancelled);
 
     return () => {
       socket.off("connect");
       socket.off("ride:request", onRideRequest);
       socket.off("rider:location", onRiderLocation);
       socket.off("ride:confirmed", onRideConfirmed);
-      socket.off('driver:booking-cleared', onDriverBookingCleared);
+      socket.off('driver:booking-cleared', onBookingCancelled);
+      socket.off('booking:cancelled', onBookingCancelled);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -489,7 +537,19 @@ const DriverDashboard = () => {
     try {
       const res = await api.patch("/driver/status");
       const data = res.data;
-      setIsOnline(data.isOnline);
+      const newStatus = Boolean(data.isOnline);
+      setIsOnline(newStatus);
+      isOnlineRef.current = newStatus;
+
+      const socket = socketRef.current;
+      if (socket) {
+        socket.emit("driver:status", { isOnline: newStatus });
+      }
+
+      if (!newStatus) {
+        setPendingRequests([]);
+        setAcceptModalOpen(false);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -578,22 +638,46 @@ const DriverDashboard = () => {
       <div className="glass-card rounded-none border-b border-white/10 p-3">
         <div className="flex items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-gradient">Driver Hub</h1>
+            <h1 className="text-2xl font-black text-gradient cursor-pointer" onClick={() => navigate("/")}>
+              Driver Hub
+            </h1>
             <p className="text-xs uppercase tracking-wider text-muted-foreground ml-4">Online: {isOnline ? '✓' : '✗'}</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 px-3 text-xs border-white/10 hover:bg-white/10 text-slate-200"
+              onClick={() => setHistoryModalOpen(true)}
+            >
+              <History className="w-4 h-4 mr-1.5 text-teal-400" /> Ride History
+            </Button>
+            <div className="flex items-center gap-2 px-2 py-1 bg-slate-800/80 rounded-lg border border-white/10">
               <span className={`text-xs font-medium ${isOnline ? 'text-teal-400' : 'text-muted-foreground'}`}>
                 {isOnline ? 'ONLINE' : 'OFFLINE'}
               </span>
               <Switch checked={isOnline} onCheckedChange={handleToggleOnline} />
             </div>
-            <Button variant="ghost" size="icon" className="hover:bg-white/10">
-              <Settings className="w-5 h-5" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hover:bg-white/10 text-slate-300 h-9 w-9"
+              onClick={() => setProfileModalOpen(true)}
+              title="Profile Settings"
+            >
+              <Settings className="w-4 h-4" />
             </Button>
+            <button
+              type="button"
+              className="w-9 h-9 rounded-full bg-purple-500/20 border border-purple-500/40 flex items-center justify-center hover:bg-purple-500/30 transition-all text-purple-300 font-bold text-sm shadow-md shadow-purple-500/10 cursor-pointer"
+              onClick={() => setProfileModalOpen(true)}
+              title="My Driver Profile"
+            >
+              {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : <User className="w-4 h-4 text-purple-400" />}
+            </button>
             {pendingRequests.length > 0 && (
-              <div className="ml-2 px-2 py-1 bg-red-500/20 border border-red-500/30 rounded text-red-400 text-xs font-medium">
-                {pendingRequests.length} requests
+              <div className="ml-1 px-2.5 py-1 bg-red-500/20 border border-red-500/30 rounded text-red-400 text-xs font-medium animate-pulse">
+                {pendingRequests.length} req
               </div>
             )}
           </div>
@@ -604,7 +688,16 @@ const DriverDashboard = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* LEFT: Stats Panel */}
         <div className="w-64 bg-slate-900/50 border-r border-white/10 p-4 overflow-y-auto">
-          <h2 className="text-lg font-bold mb-4">Today's Stats</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold">Today's Stats</h2>
+            <button
+              type="button"
+              className="text-xs text-teal-400 hover:text-teal-300 flex items-center gap-1 cursor-pointer"
+              onClick={() => setHistoryModalOpen(true)}
+            >
+              <History className="w-3 h-3" /> History
+            </button>
+          </div>
           <div className="space-y-3">
             {/* Earnings */}
             <div className="glass-card p-3 text-center">
@@ -833,6 +926,27 @@ const DriverDashboard = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Profile Modal */}
+      <ProfileModal
+        open={profileModalOpen}
+        onOpenChange={setProfileModalOpen}
+        initialUser={currentUser}
+        onProfileUpdated={(updated) => {
+          setCurrentUser(updated);
+          fetchDashboard();
+        }}
+      />
+
+      {/* Ride History Modal */}
+      <RideHistoryModal
+        open={historyModalOpen}
+        onOpenChange={setHistoryModalOpen}
+        userRole="driver"
+      />
+
+      {/* AI Support Copilot */}
+      <CopilotChat />
     </div>
   );
 };

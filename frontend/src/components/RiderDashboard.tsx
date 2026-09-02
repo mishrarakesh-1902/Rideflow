@@ -1,5 +1,5 @@
-﻿// src/components/RiderDashboard.tsx
-import { useState, useEffect, useRef } from "react";
+// src/components/RiderDashboard.tsx
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,8 @@ import {
   Menu,
   Car,
   DollarSign,
+  History,
+  AlertCircle,
 } from "lucide-react";
 
 import api from "@/services/api";
@@ -25,9 +27,22 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { initSocket, getSocket } from "@/services/socket";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import ProfileModal from "./ProfileModal";
+import RideHistoryModal from "./RideHistoryModal";
+import CopilotChat from "./CopilotChat";
 
 const RiderDashboard: React.FC = () => {
   const navigate = useNavigate();
+
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("user") || "null");
+    } catch {
+      return null;
+    }
+  });
 
   const [pickup, setPickup] = useState("");
   const [destination, setDestination] = useState("");
@@ -36,6 +51,7 @@ const RiderDashboard: React.FC = () => {
   const [destinationSuggestions, setDestinationSuggestions] = useState<any[]>([]);
   const [selectedPickupCenter, setSelectedPickupCenter] = useState<[number, number] | null>(null);
   const [selectedDestCenter, setSelectedDestCenter] = useState<[number, number] | null>(null);
+  const [routeDistanceKm, setRouteDistanceKm] = useState<number>(0);
   const [estFare, setEstFare] = useState<number | null>(null);
   const [estETA, setEstETA] = useState<number | null>(null);
 
@@ -55,7 +71,15 @@ const RiderDashboard: React.FC = () => {
   const [acceptedFare, setAcceptedFare] = useState<number | null>(null);
   const [acceptedPaid, setAcceptedPaid] = useState<boolean | null>(null);
   const [acceptedOtp, setAcceptedOtp] = useState<string | null>(null);
+  const [fareExplanation, setFareExplanation] = useState<string>("");
   const { toast } = useToast();
+
+  // Driver search & timeout states
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchCountdown, setSearchCountdown] = useState(60);
+  const [noDriverModalOpen, setNoDriverModalOpen] = useState(false);
+  const [searchPayload, setSearchPayload] = useState<any>(null);
+  const searchTimerRef = useRef<any>(null);
 
   // Keep a ref to the active booking so socket listeners can check latest value without reattaching
   const activeBookingRef = useRef<string | null>(null);
@@ -71,6 +95,66 @@ const RiderDashboard: React.FC = () => {
     }
   }, [MAPBOX_TOKEN]);
 
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimerRef.current) clearInterval(searchTimerRef.current);
+    };
+  }, []);
+
+  const startSearch = (bookingId: string, payload?: any) => {
+    if (searchTimerRef.current) clearInterval(searchTimerRef.current);
+    if (payload) setSearchPayload(payload);
+    setIsSearching(true);
+    setSearchCountdown(60);
+
+    let timeLeft = 60;
+    searchTimerRef.current = setInterval(async () => {
+      timeLeft -= 1;
+      setSearchCountdown(timeLeft);
+
+      if (timeLeft <= 0) {
+        if (searchTimerRef.current) clearInterval(searchTimerRef.current);
+        setIsSearching(false);
+        // Auto-cancel on backend
+        try {
+          await api.patch(`/bookings/${bookingId}/cancel`, {
+            cancellationReason: 'No driver available nearby'
+          });
+        } catch (e) {
+          console.warn('Auto-cancel on timeout failed', e);
+        }
+        setActiveBookingId(null);
+        setActiveBooking(null);
+        setNoDriverModalOpen(true);
+      }
+    }, 1000);
+  };
+
+  const stopSearch = () => {
+    if (searchTimerRef.current) {
+      clearInterval(searchTimerRef.current);
+      searchTimerRef.current = null;
+    }
+    setIsSearching(false);
+  };
+
+  const cancelSearch = async () => {
+    stopSearch();
+    if (activeBookingId) {
+      try {
+        await api.patch(`/bookings/${activeBookingId}/cancel`, {
+          cancellationReason: 'Cancelled by rider during search'
+        });
+      } catch (e) {
+        console.warn('Cancel search API failed', e);
+      }
+    }
+    setActiveBookingId(null);
+    setActiveBooking(null);
+    toast({ title: 'Search Cancelled', description: 'Your ride request has been cancelled.' });
+  };
+
   // Helper: fetch user's active booking (accepted/started)
   const fetchMyActiveBooking = async () => {
     try {
@@ -79,8 +163,10 @@ const RiderDashboard: React.FC = () => {
       // pick the most recent booking that is accepted or started
       const active = bookings.find((b:any) => b.status === 'accepted' || b.status === 'started' || b.status === 'in_progress');
       if (active) {
+        stopSearch();
         setActiveBookingId(active._id);
         setActiveBooking(active);
+        if (active.fareExplanation) setFareExplanation(active.fareExplanation);
         if (active.otp) setAcceptedOtp(String(active.otp));
         // ensure we join booking room to receive live updates
         try { const s = getSocket() || initSocket(); s.emit('join:booking', { bookingId: active._id }); } catch (e) { console.warn('join booking in fetchMyActiveBooking failed', e); }
@@ -97,6 +183,7 @@ const RiderDashboard: React.FC = () => {
     if (!activeBookingId) return alert('No active booking to cancel');
     const ok = window.confirm('Are you sure you want to cancel this ride?');
     if (!ok) return;
+    stopSearch();
     try {
       const res = await api.patch(`/bookings/${activeBookingId}/cancel`);
       setActiveBookingId(null);
@@ -132,10 +219,55 @@ const RiderDashboard: React.FC = () => {
       (async () => { try { await fetchMyActiveBooking(); } catch (e) { console.warn('initial fetchMyActiveBooking failed', e); } })();
     });
 
+    // Booking created via AI Copilot or direct request
+    const onBookingCreated = async (payload: any) => {
+      console.log("🚕 booking:created received:", payload);
+      if (payload?.bookingId) {
+        socket.emit("join:booking", { bookingId: payload.bookingId });
+        setActiveBookingId(payload.bookingId);
 
+        if (payload.pickup?.address) setPickup(payload.pickup.address);
+        if (payload.destination?.address) setDestination(payload.destination.address);
+
+        const pickupCoords = payload.pickup?.location?.coordinates;
+        const destCoords = payload.destination?.location?.coordinates;
+
+        if (pickupCoords) setSelectedPickupCenter(pickupCoords);
+        if (destCoords) setSelectedDestCenter(destCoords);
+        if (payload.fare) setEstFare(payload.fare);
+        if (payload.estimatedTimeMin) setEstETA(payload.estimatedTimeMin);
+        if (payload.fareExplanation) setFareExplanation(payload.fareExplanation);
+
+        // Fetch route geometry for Mapbox so the blue line appears on the map
+        if (pickupCoords && destCoords && MAPBOX_TOKEN) {
+          try {
+            const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${pickupCoords[0]},${pickupCoords[1]};${destCoords[0]},${destCoords[1]}?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`;
+            const r = await fetch(url);
+            const d = await r.json();
+            if (d?.routes?.[0]?.geometry) {
+              setRouteGeoJSON({
+                type: "Feature",
+                geometry: d.routes[0].geometry,
+                properties: {},
+              });
+            }
+          } catch (e) {
+            console.warn("Failed to fetch route for AI booking:", e);
+          }
+        }
+
+        startSearch(payload.bookingId, payload);
+        toast({
+          title: "Ride Booked by AI Assistant",
+          description: "Searching for nearby drivers...",
+        });
+      }
+    };
+    socket.on("booking:created", onBookingCreated);
 
     const onRideAccepted = (data: any) => {
       console.log("🔔 ride:accepted received", data);
+      stopSearch();
       setDriverInfo(data.driverInfo || { id: data.driverId });
       setActiveBookingId(data.bookingId || null);
       // set fare for modal display
@@ -188,6 +320,7 @@ const RiderDashboard: React.FC = () => {
     socket.on('booking:cancelled', (p: any) => {
       try {
         if (p?.bookingId && p.bookingId === activeBookingRef.current) {
+          stopSearch();
           setActiveBookingId(null);
           setActiveBooking(null);
           setAcceptedModalOpen(false);
@@ -391,11 +524,47 @@ const RiderDashboard: React.FC = () => {
     };
   }, [driverLocation]);
 
-  const rideOptions = [
-    { id: "economy", name: "Economy", price: 850, display: "₹8.50", time: "5 min", icon: <Car className="w-5 h-5" /> },
-    { id: "standard", name: "Standard", price: 1250, display: "₹12.50", time: "3 min", icon: <Car className="w-5 h-5" /> },
-    { id: "premium", name: "Premium", price: 1800, display: "₹18.00", time: "2 min", icon: <Car className="w-5 h-5" /> },
-  ];
+  const rideOptions = useMemo(() => {
+    const dist = routeDistanceKm > 0 ? routeDistanceKm : 5;
+    const perKm = 10;
+    const econPaise = Math.max(5000, Math.round(dist * perKm * 0.8 * 100));
+    const stdPaise = Math.max(5000, Math.round(dist * perKm * 1.0 * 100));
+    const premPaise = Math.max(7500, Math.round(dist * perKm * 1.5 * 100));
+
+    return [
+      {
+        id: "economy" as const,
+        name: "Economy",
+        price: econPaise,
+        display: `₹${(econPaise / 100).toFixed(2)}`,
+        time: estETA ? `${Math.max(2, estETA - 2)} min` : "5 min",
+        icon: <Car className="w-5 h-5" />,
+      },
+      {
+        id: "standard" as const,
+        name: "Standard",
+        price: stdPaise,
+        display: `₹${(stdPaise / 100).toFixed(2)}`,
+        time: estETA ? `${estETA} min` : "3 min",
+        icon: <Car className="w-5 h-5" />,
+      },
+      {
+        id: "premium" as const,
+        name: "Premium",
+        price: premPaise,
+        display: `₹${(premPaise / 100).toFixed(2)}`,
+        time: estETA ? `${Math.max(1, estETA - 3)} min` : "2 min",
+        icon: <Car className="w-5 h-5" />,
+      },
+    ];
+  }, [routeDistanceKm, estETA]);
+
+  useEffect(() => {
+    const selected = rideOptions.find((r) => r.id === rideType);
+    if (selected) {
+      setEstFare(selected.price);
+    }
+  }, [rideType, rideOptions]);
 
   const recentRides = [
     { id: 1, from: "Downtown Plaza", to: "Tech Campus", price: "₹14.50", rating: 5, date: "Today" },
@@ -532,11 +701,9 @@ const RiderDashboard: React.FC = () => {
             geometry: route.geometry,
           });
 
-          const distKm = (route.distance || 0) / 1000;
+          const distKm = Math.round(((route.distance || 0) / 1000) * 10) / 10;
           const durMin = Math.max(1, Math.round((route.duration || 0) / 60));
-          // Fare formula: base 30 + 12/km
-          const fareRupees = 30 + 12 * distKm;
-          setEstFare(Math.round(fareRupees * 100));
+          setRouteDistanceKm(distKm);
           setEstETA(durMin);
         } else {
           setEstFare(null);
@@ -594,6 +761,10 @@ const RiderDashboard: React.FC = () => {
       const booking = res.data?.booking || res.data;
       console.log("🚕 Booking created:", booking);
 
+      if (booking?.fareExplanation) {
+        setFareExplanation(booking.fareExplanation);
+      }
+
       const socket = getSocket() || initSocket();
       const riderId = (user && user._id) || (user && user.id) || null;
 
@@ -631,8 +802,11 @@ const RiderDashboard: React.FC = () => {
               // join booking room and set active booking
               socket.emit("join:booking", { bookingId: booking._id });
               setActiveBookingId(booking._id);
-
-              alert("✅ Payment successful and ride will be matched with drivers shortly.");
+              startSearch(booking._id, payload);
+              toast({
+                title: "Payment Successful",
+                description: "Looking for nearby drivers to accept your trip...",
+              });
             } catch (err: any) {
               console.error("❌ Payment verify error", err);
               alert("Payment succeeded but verification failed. Please contact support.");
@@ -648,7 +822,11 @@ const RiderDashboard: React.FC = () => {
         socket.emit("ride:request", { bookingId: booking._id, riderId, pickup: payload.pickup, destination: payload.destination, fare: payload.fare });
         socket.emit("join:booking", { bookingId: booking._id });
         setActiveBookingId(booking._id);
-        alert('✅ Ride requested. Pay in cash to driver when the ride completes.');
+        startSearch(booking._id, payload);
+        toast({
+          title: "Ride Requested",
+          description: "Looking for nearby drivers to accept your trip...",
+        });
       }
     } catch (err: any) {
       console.error("❌ Request ride error", err);
@@ -669,16 +847,37 @@ const RiderDashboard: React.FC = () => {
       <div className="glass-card rounded-none border-b border-white/10 p-3">
         <div className="flex items-center justify-between px-4">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-gradient">RideFlow</h1>
+            <h1 className="text-2xl font-black text-gradient cursor-pointer" onClick={() => navigate("/")}>
+              RideFlow
+            </h1>
             <p className="text-xs uppercase tracking-wider text-muted-foreground ml-4">Rider</p>
           </div>
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="hover:bg-white/10">
-              <Settings className="w-5 h-5" />
+          <div className="flex items-center gap-2.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 px-3 text-xs border-white/10 hover:bg-white/10 text-slate-200"
+              onClick={() => setHistoryModalOpen(true)}
+            >
+              <History className="w-4 h-4 mr-1.5 text-cyan-400" /> Ride History
             </Button>
-            <div className="w-9 h-9 rounded-full bg-teal-500/30 border border-teal-500/30 flex items-center justify-center">
-              <User className="w-4 h-4 text-teal-400" />
-            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hover:bg-white/10 text-slate-300 h-9 w-9"
+              onClick={() => setProfileModalOpen(true)}
+              title="Profile Settings"
+            >
+              <Settings className="w-4 h-4" />
+            </Button>
+            <button
+              type="button"
+              className="w-9 h-9 rounded-full bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center hover:bg-cyan-500/30 transition-all text-cyan-300 font-bold text-sm shadow-md shadow-cyan-500/10 cursor-pointer"
+              onClick={() => setProfileModalOpen(true)}
+              title="My Profile"
+            >
+              {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : <User className="w-4 h-4 text-cyan-400" />}
+            </button>
           </div>
         </div>
       </div>
@@ -687,7 +886,80 @@ const RiderDashboard: React.FC = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel - Booking Form (25-30%) */}
         <div className="w-80 bg-slate-900/70 border-r border-white/10 p-5 overflow-y-auto">
-          {!activeBooking ? (
+          {isSearching && !activeBooking ? (
+            <div className="space-y-5 py-2">
+              {/* Radar Searching Animation */}
+              <div className="relative flex flex-col items-center justify-center py-6 overflow-hidden rounded-2xl bg-gradient-to-b from-cyan-500/10 via-slate-800/50 to-slate-900/80 border border-cyan-500/20">
+                <div className="absolute w-36 h-36 rounded-full border border-cyan-500/20 animate-ping opacity-75" />
+                <div className="absolute w-24 h-24 rounded-full border border-cyan-400/30 animate-pulse" />
+                <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-xl shadow-cyan-500/30 z-10">
+                  <Car className="w-8 h-8 animate-bounce" />
+                </div>
+                <div className="mt-4 text-center z-10 px-3">
+                  <h3 className="text-base font-bold text-slate-100 flex items-center justify-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                    Looking for Drivers
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Matching with nearest available cars...
+                  </p>
+                </div>
+              </div>
+
+              {/* Countdown Timer Card */}
+              <div className="p-3.5 rounded-xl bg-slate-800/80 border border-white/10 space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Search Timeout</span>
+                  <span className="font-mono font-bold text-cyan-300">{searchCountdown}s</span>
+                </div>
+                {/* Progress Bar */}
+                <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 transition-all duration-1000 ease-linear rounded-full"
+                    style={{ width: `${(searchCountdown / 60) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Route Summary Card */}
+              <div className="space-y-2.5 p-3.5 rounded-xl bg-slate-800/50 border border-white/5 text-xs">
+                <div className="flex items-start gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-400 mt-1 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-muted-foreground text-[10px] uppercase font-semibold">Pickup</span>
+                    <p className="text-slate-200 truncate">{pickup || searchPayload?.pickup?.address || '—'}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-2 h-2 rounded-full bg-rose-400 mt-1 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-muted-foreground text-[10px] uppercase font-semibold">Destination</span>
+                    <p className="text-slate-200 truncate">{destination || searchPayload?.destination?.address || '—'}</p>
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-white/5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Est. Fare</span>
+                    <span className="font-bold text-cyan-300">₹{estFare ? (estFare / 100).toFixed(2) : '--'}</span>
+                  </div>
+                  {(fareExplanation || activeBooking?.fareExplanation || searchPayload?.fareExplanation) && (
+                    <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed italic">
+                      {fareExplanation || activeBooking?.fareExplanation || searchPayload?.fareExplanation}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Cancel Search Button */}
+              <Button
+                variant="outline"
+                className="w-full border-red-500/30 text-red-400 hover:text-red-300 hover:bg-red-500/10 h-10 text-sm font-semibold"
+                onClick={cancelSearch}
+              >
+                Cancel Search
+              </Button>
+            </div>
+          ) : !activeBooking ? (
             <div className="space-y-5">
               <h2 className="text-2xl font-black">Where to?</h2>
               <p className="text-sm text-muted-foreground">Request a ride in seconds</p>
@@ -839,9 +1111,17 @@ const RiderDashboard: React.FC = () => {
                 </div>
               </div>
 
-              <Button className="w-full h-12 font-bold text-lg btn-gradient" onClick={handleRequestRide}>
+              <Button className="w-full h-12 font-bold text-lg btn-gradient shadow-lg shadow-cyan-500/20" onClick={handleRequestRide}>
                 Book Ride
               </Button>
+
+              <button
+                type="button"
+                className="w-full text-center text-xs text-muted-foreground hover:text-cyan-300 flex items-center justify-center gap-1.5 pt-1 transition-colors cursor-pointer"
+                onClick={() => setHistoryModalOpen(true)}
+              >
+                <History className="w-3.5 h-3.5" /> View Previous Trips
+              </button>
             </div>
           ) : (
             <div className="space-y-4">
@@ -859,6 +1139,11 @@ const RiderDashboard: React.FC = () => {
                   <div className="text-lg font-bold text-cyan-300">{activeBooking?.fare ? `₹${(activeBooking.fare/100).toFixed(2)}` : (acceptedFare ? `₹${(acceptedFare/100).toFixed(2)}` : '₹--')}</div>
                 </div>
                 <p className="pt-2 text-xs text-muted-foreground">Driver is {driverInfo?.distance || '0.8'} miles away</p>
+                {(activeBooking?.fareExplanation || fareExplanation) && (
+                  <p className="text-xs text-muted-foreground mt-2 border-t border-white/5 pt-2 leading-relaxed italic">
+                    {activeBooking?.fareExplanation || fareExplanation}
+                  </p>
+                )}
               </div>
 
               {/* Ride Info */}
@@ -964,6 +1249,13 @@ const RiderDashboard: React.FC = () => {
             )}
           </Map>
 
+          {isSearching && (
+            <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-slate-900/90 border border-cyan-500/40 backdrop-blur-md rounded-full px-5 py-2.5 shadow-2xl flex items-center gap-3 z-30 animate-pulse">
+              <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
+              <span className="text-xs font-semibold text-slate-100">Connecting with nearby drivers ({searchCountdown}s)</span>
+            </div>
+          )}
+
           {activeBooking && (
             <div className="absolute right-8 top-12 w-96 bg-slate-900/95 border border-white/10 backdrop-blur-md rounded-2xl p-5 shadow-2xl">
               <div className="flex items-center justify-between">
@@ -992,6 +1284,40 @@ const RiderDashboard: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* No Driver Timeout Dialog */}
+      <Dialog open={noDriverModalOpen} onOpenChange={setNoDriverModalOpen}>
+        <DialogContent className="bg-slate-900 text-white border border-white/10 max-w-sm p-6 rounded-2xl shadow-2xl text-center">
+          <div className="w-16 h-16 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center mx-auto mb-3">
+            <AlertCircle className="w-9 h-9 text-amber-400 animate-pulse" />
+          </div>
+          <DialogHeader className="space-y-1 text-center">
+            <DialogTitle className="text-xl font-bold text-slate-100 text-center">No Drivers Nearby</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground pt-1 text-center">
+              All nearby drivers are currently busy or offline. Please try booking again in a few moments.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-2 pt-4">
+            <Button
+              className="w-full btn-gradient h-10 font-semibold"
+              onClick={() => {
+                setNoDriverModalOpen(false);
+                handleRequestRide();
+              }}
+            >
+              Try Again
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full border-white/10 hover:bg-white/5 h-10 text-xs"
+              onClick={() => setNoDriverModalOpen(false)}
+            >
+              Modify Route
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Accepted modal */}
       <Dialog open={acceptedModalOpen} onOpenChange={setAcceptedModalOpen}>
@@ -1027,6 +1353,24 @@ const RiderDashboard: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Profile Modal */}
+      <ProfileModal
+        open={profileModalOpen}
+        onOpenChange={setProfileModalOpen}
+        initialUser={currentUser}
+        onProfileUpdated={(updated) => setCurrentUser(updated)}
+      />
+
+      {/* Ride History Modal */}
+      <RideHistoryModal
+        open={historyModalOpen}
+        onOpenChange={setHistoryModalOpen}
+        userRole="rider"
+      />
+
+      {/* AI Support Copilot */}
+      <CopilotChat />
     </div>
   );
 };

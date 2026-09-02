@@ -117,10 +117,22 @@ function initSockets(server) {
       console.log("✅ Socket connected:", userId, socket.id);
 
       // --- JOIN TYPES ---
-      // Drivers join a shared drivers room so server can broadcast ride requests
-      socket.on("driver:join", () => {
-        socket.join("drivers");
-        console.log(`🚗 Driver joined drivers room: ${userId}`);
+      // Drivers join a shared drivers room so server can broadcast ride requests (only when online)
+      socket.on("driver:join", (data) => {
+        if (data?.isOnline !== false) {
+          socket.join("drivers");
+          console.log(`🚗 Driver joined drivers room: ${userId}`);
+        }
+      });
+
+      socket.on("driver:status", ({ isOnline }) => {
+        if (isOnline) {
+          socket.join("drivers");
+          console.log(`🚗 Driver joined drivers room (online): ${userId}`);
+        } else {
+          socket.leave("drivers");
+          console.log(`🚗 Driver left drivers room (offline): ${userId}`);
+        }
       });
 
       // Riders call rider:join to register themselves (keeps parity)

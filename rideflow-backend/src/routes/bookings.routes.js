@@ -29,4 +29,7 @@ router.get('/:id', auth, ctrl.getBooking);
 // driver dashboard endpoint used by frontend
 router.get('/driver/dashboard', auth, role(['driver']), ctrl.dashboardForDriver);
 
+// driver ride history
+router.get('/driver/rides', auth, role(['driver']), ctrl.getBookingsForDriver);
+
 module.exports = router;

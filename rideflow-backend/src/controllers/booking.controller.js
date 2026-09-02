@@ -1,141 +1,3 @@
-// const Booking = require('../models/Booking.model');
-// const User = require('../models/User.model');
-// const { geocode } = require('../services/mapbox.service');
-// const mongoose = require('mongoose');
-
-// const RADIUS_METERS = 5000; // find drivers within 5km by default
-
-// // create a booking (rider)
-// exports.createBooking = async (req, res) => {
-//   try {
-//     const { pickupAddress, pickupLng, pickupLat, destAddress, destLng, destLat, rideType } = req.body;
-//     if (!pickupLng || !pickupLat || !destLng || !destLat) {
-//       return res.status(400).json({ message: 'Missing coordinates' });
-//     }
-//     const rider = req.user;
-
-//     const pickup = {
-//       address: pickupAddress || '',
-//       location: { type: 'Point', coordinates: [pickupLng, pickupLat] }
-//     };
-//     const destination = {
-//       address: destAddress || '',
-//       location: { type: 'Point', coordinates: [destLng, destLat] }
-//     };
-
-//     // Very simple fare calc — replace with proper formula
-//     const dx = pickupLng - destLng;
-//     const dy = pickupLat - destLat;
-//     const distanceKm = Math.max(0.5, Math.sqrt(dx * dx + dy * dy) * 111); // rough
-//     const fare = Math.round(distanceKm * 2 * 100) / 100; // $2 per km
-
-//     const booking = await Booking.create({
-//       rider: rider._id,
-//       pickup,
-//       destination,
-//       distanceKm,
-//       fare,
-//       status: 'requested'
-//     });
-
-//     // Find nearest available driver
-//     const nearbyDrivers = await User.find({
-//       role: 'driver',
-//       isOnline: true,
-//       location: {
-//         $near: {
-//           $geometry: { type: 'Point', coordinates: [pickupLng, pickupLat] },
-//           $maxDistance: RADIUS_METERS
-//         }
-//       }
-//     }).limit(10);
-
-//     // Emit to drivers via socket
-//     const { io } = require('../socket');
-//     nearbyDrivers.forEach((drv) => {
-//       // send a 'ride:request' event to driver
-//       io.to(`user:${drv._id}`).emit('ride:request', { bookingId: booking._id, pickup, destination, fare, distanceKm });
-//     });
-
-//     res.json({ booking, suggestedDriversCount: nearbyDrivers.length });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ message: 'Failed to create booking', error: err.message });
-//   }
-// };
-
-// // driver accepts
-// exports.acceptBooking = async (req, res) => {
-//   try {
-//     const bookingId = req.params.id;
-//     const driver = req.user;
-//     if (driver.role !== 'driver') return res.status(403).json({ message: 'Only drivers' });
-
-//     const booking = await Booking.findById(bookingId);
-//     if (!booking) return res.status(404).json({ message: 'Booking not found' });
-//     if (booking.status !== 'requested') return res.status(400).json({ message: 'Booking not available' });
-
-//     booking.driver = driver._id;
-//     booking.status = 'accepted';
-//     await booking.save();
-
-//     // notify rider
-//     const { io } = require('../socket');
-//     io.to(`user:${booking.rider}`).emit('ride:accepted', { bookingId: booking._id, driverId: driver._id });
-//     // join both sockets to room booking:<id>
-//     io.to(`user:${driver._id}`).socketsJoin(`booking:${booking._id}`);
-//     io.to(`user:${booking.rider}`).socketsJoin(`booking:${booking._id}`);
-
-//     res.json({ booking });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ message: 'Failed to accept booking', error: err.message });
-//   }
-// };
-
-// // complete booking
-// exports.completeBooking = async (req, res) => {
-//   try {
-//     const bookingId = req.params.id;
-//     const driver = req.user;
-//     if (driver.role !== 'driver') return res.status(403).json({ message: 'Only drivers' });
-
-//     const booking = await Booking.findById(bookingId);
-//     if (!booking) return res.status(404).json({ message: 'Booking not found' });
-//     if (!booking.driver || booking.driver.toString() !== driver._id.toString()) return res.status(403).json({ message: 'Not your booking' });
-
-//     booking.status = 'completed';
-//     await booking.save();
-
-//     const { io } = require('../socket');
-//     io.to(`booking:${booking._id}`).emit('ride:completed', { bookingId: booking._id });
-
-//     res.json({ booking });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ message: 'Failed to complete booking', error: err.message });
-//   }
-// };
-
-// // get driver/rider dashboard data (the frontend earlier calls /driver/dashboard)
-// exports.dashboardForDriver = async (req, res) => {
-//   try {
-//     const user = req.user;
-//     // For demo: return driver info, active ride if any, today stats rudimentary
-//     const activeRide = await Booking.findOne({ driver: user._id, status: { $in: ['accepted','started'] } }).populate('rider', 'name rating');
-//     const todayStats = { earnings: 0, rides: 0, hours: 0, rating: user.rating || 5 };
-//     const weeklyStats = []; // populate with sample
-//     for (let i = 0; i < 7; i++) weeklyStats.push({ day: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][i], earnings: Math.round(Math.random()*50) });
-
-//     res.json({ driver: user, activeRide, todayStats, weeklyStats });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ message: 'Failed', error: err.message });
-//   }
-// };
-
-
-
 
 /**
  * Request a ride
@@ -148,10 +10,11 @@
  *  }
  */
 
-// src/controllers/booking.controller.js
 const Booking = require('../models/Booking.model');
 // Drivers are stored in the User collection (role: 'driver') — use User model to find nearest drivers
 const User = require('../models/User.model');
+const { detectFareAnomaly, detectRepeatedPairing } = require('../services/anomalyDetection.service');
+const { explainFare, summarizeAnomaly } = require('../services/fareInsight.service');
 
 
 exports.requestRide = async (req, res) => {
@@ -219,9 +82,33 @@ exports.requestRide = async (req, res) => {
 
     // Ensure a consistent per-km rate (rupees per km). Use env or default to 10 rupees/km
     const perKmRate = Number(process.env.PER_KM_RATE_RUPEES || 10);
-    const computedFarePaise = Math.round(distanceKm * perKmRate * 100);
+    const perKmRatePaise = perKmRate * 100;
+    let multiplier = 1.0;
+    if (rideType === 'economy') multiplier = 0.8;
+    if (rideType === 'premium') multiplier = 1.5;
 
-    console.log('ℹ️ computedFarePaise:', computedFarePaise, 'received fare:', fare, 'paymentMethod:', paymentMethod);
+    const baseFarePaise = 0;
+    const computedFarePaise = Math.max(5000, Math.round(distanceKm * perKmRate * multiplier * 100));
+    const finalFarePaise = (typeof fare === 'number' && fare >= 5000) ? fare : computedFarePaise;
+
+    console.log('ℹ️ distanceKm:', distanceKm, 'computedFarePaise:', computedFarePaise, 'received fare:', fare, 'finalFarePaise:', finalFarePaise, 'paymentMethod:', paymentMethod);
+
+    const fareFlag = detectFareAnomaly({
+      farePaise: finalFarePaise,
+      distanceKm,
+      perKmRatePaise,
+      baseFarePaise,
+    });
+
+    const fareExplanation = await explainFare({
+      farePaise: finalFarePaise,
+      distanceKm,
+      perKmRatePaise,
+      baseFarePaise,
+      surgeApplied: false,
+    });
+
+    const anomalyFlags = fareFlag ? [fareFlag] : [];
 
     let booking;
     try {
@@ -230,11 +117,13 @@ exports.requestRide = async (req, res) => {
         pickup,
         destination,
         rideType: rideType || 'standard',
-        fare: typeof fare === 'number' && fare > 0 ? fare : computedFarePaise,
+        fare: finalFarePaise,
         distanceKm,
         estimatedTimeMin,
         paymentMethod,
         status: paymentMethod === 'online' ? 'pending_payment' : 'requested',
+        fareExplanation,
+        anomalyFlags,
         createdAt: new Date(),
       });
       console.log('✅ booking created:', booking._id);
@@ -250,6 +139,7 @@ exports.requestRide = async (req, res) => {
     if (booking.paymentMethod === 'cash') {
       const nearbyDrivers = await User.find({
         role: 'driver',
+        isOnline: true,
         location: {
           $near: {
             $geometry: { type: 'Point', coordinates: [lng, lat] },
@@ -307,6 +197,18 @@ exports.acceptBooking = async (req, res) => {
     booking.otp = otp;
     booking.otpExpiresAt = new Date(Date.now() + (30 * 60 * 1000)); // valid 30 minutes (increased from 10)
     booking.otpVerified = false;
+
+    // Check for repeated pairing anomaly
+    const pairFlag = await detectRepeatedPairing(booking.rider, booking.driver);
+    if (pairFlag) {
+      if (!booking.anomalyFlags) booking.anomalyFlags = [];
+      booking.anomalyFlags.push(pairFlag);
+      booking.anomalySummary = await summarizeAnomaly({
+        flags: booking.anomalyFlags,
+        bookingId: booking._id,
+      });
+    }
+
     await booking.save();
     console.log('✅ Booking accepted:', booking._id.toString(), 'by driver', driver._id.toString(), 'otp:', otp);
 
@@ -461,14 +363,19 @@ exports.cancelBooking = async (req, res) => {
       }
     }
 
-    // notify via sockets — notify rider, and send a silent refresh to driver (no UI notification)
+    // notify via sockets — notify rider and driver
     const helpers = require('../socket').helpers || {};
     try {
-      // silent notify driver to refresh their dashboard state without showing a cancellation UI
       if (booking.driver) {
         try {
           helpers.emitToUser(booking.driver, 'driver:booking-cleared', { bookingId: booking._id });
+          helpers.emitToUser(booking.driver, 'booking:cancelled', { bookingId: booking._id });
         } catch (innerErr) {}
+      }
+
+      if (helpers.emitToRoom) {
+        helpers.emitToRoom(`booking:${booking._id}`, 'booking:cancelled', { bookingId: booking._id });
+        helpers.emitToRoom(`booking:${booking._id}`, 'driver:booking-cleared', { bookingId: booking._id });
       }
 
       helpers.emitToUser(booking.rider, 'booking:cancelled', { bookingId: booking._id });
@@ -491,6 +398,19 @@ exports.getBookingsForUser = async (req, res) => {
     res.json({ bookings });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.getBookingsForDriver = async (req, res) => {
+  try {
+    const user = req.user;
+    const bookings = await Booking.find({ driver: user._id })
+      .populate('rider', 'name email phone rating')
+      .sort({ createdAt: -1 });
+    res.json({ bookings });
+  } catch (err) {
+    console.error('getBookingsForDriver error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 };

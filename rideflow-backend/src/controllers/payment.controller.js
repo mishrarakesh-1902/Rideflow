@@ -49,6 +49,7 @@ exports.verifyPayment = async (req, res) => {
       const [lng, lat] = booking.pickup.location.coordinates;
       const nearbyDrivers = await User.find({
         role: 'driver',
+        isOnline: true,
         location: {
           $near: {
             $geometry: { type: 'Point', coordinates: [lng, lat] },

@@ -57,7 +57,10 @@ const bookingSchema = new mongoose.Schema({
   cancelledAt: Date,
   cancellationReason: String,
   payment: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment' },
-  paymentMethod: { type: String, enum: ['online', 'cash'], default: 'online' }
+  paymentMethod: { type: String, enum: ['online', 'cash'], default: 'online' },
+  fareExplanation: { type: String, default: '' },
+  anomalyFlags: { type: [String], default: [] },
+  anomalySummary: { type: String, default: '' }
 });
 
 bookingSchema.pre('save', function (next) {
