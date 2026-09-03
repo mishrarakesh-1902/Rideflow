@@ -8,7 +8,7 @@ exports.chat = async (req, res) => {
     }
     const result = await runCopilot({
       userMessage: message,
-      userId: req.user._id,
+      userId: req.user ? req.user._id : null,
       conversationHistory: history || [],
     });
     res.json(result);

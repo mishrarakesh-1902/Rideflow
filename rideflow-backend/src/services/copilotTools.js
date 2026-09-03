@@ -124,6 +124,9 @@ async function geocodeAddress(address) {
 
 // ---- 2. Real implementations — every one scoped to userId ----
 async function getMyProfile(userId) {
+  if (!userId) {
+    return { error: 'You are currently browsing as a guest. Please sign in to view your profile details.' };
+  }
   const user = await User.findById(userId).select('-password');
   if (!user) return { error: 'User not found' };
   return {
@@ -138,6 +141,9 @@ async function getMyProfile(userId) {
 }
 
 async function getMyBookings(userId) {
+  if (!userId) {
+    return { error: 'You are currently browsing as a guest. Please sign in to view your ride history.' };
+  }
   const user = await User.findById(userId);
   const isDriver = user && user.role === 'driver';
 
@@ -155,6 +161,9 @@ async function getMyBookings(userId) {
 }
 
 async function getBooking(bookingId, userId) {
+  if (!userId) {
+    return { error: 'Please sign in to view booking details.' };
+  }
   const booking = await Booking.findById(bookingId)
     .populate('driver', 'name phone vehicle rating')
     .populate('rider', 'name phone');
@@ -175,6 +184,9 @@ async function getBooking(bookingId, userId) {
 }
 
 async function getDriverStats(userId) {
+  if (!userId) {
+    return { error: 'Please sign in as a driver to view earnings and statistics.' };
+  }
   const driver = await User.findById(userId);
   if (!driver || driver.role !== 'driver') {
     return { error: 'Driver statistics are only available for driver accounts.' };
@@ -373,6 +385,19 @@ async function bookRide({ pickupAddress, destinationAddress, rideType = 'standar
     baseFarePaise: 0,
     surgeApplied: multiplier > 1,
   });
+
+  if (!userId) {
+    return {
+      success: false,
+      isGuest: true,
+      pickup: pickupGeo.address,
+      destination: destGeo.address,
+      estimatedDistanceKm: distanceKm,
+      estimatedTimeMin,
+      estimatedFareRupees: (computedFarePaise / 100).toFixed(2),
+      message: `The estimated fare for a ${rideType} ride from "${pickupGeo.address}" to "${destGeo.address}" is ₹${(computedFarePaise / 100).toFixed(2)} (${distanceKm} km, ~${estimatedTimeMin} mins). To confirm and book this ride, please click 'Sign In' at the top right to log in or create an account.`,
+    };
+  }
 
   const booking = await Booking.create({
     rider: userId,

@@ -10,17 +10,31 @@ const CopilotChat: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [showMascotSign, setShowMascotSign] = useState(true);
-  const initialGreeting: ChatMsg = {
-    role: "assistant",
-    text: "Hi! I'm your RideFlow AI Assistant. How can I help you today? Ask about your rides, fares, or book a trip directly!",
+
+  const getGreeting = (): ChatMsg => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const u = JSON.parse(userStr);
+        return {
+          role: "assistant",
+          text: `Hi ${u.name || "there"}! 👋 I'm your RideFlow AI Assistant. How can I help you today? Ask about your rides, fares, or book a trip directly!`,
+        };
+      } catch (e) {}
+    }
+    return {
+      role: "assistant",
+      text: "Hi! 🚀 I'm your RideFlow AI Assistant. How can I help you? Feel free to ask about our features, safety, dynamic pricing, or how to get started!",
+    };
   };
-  const [msgs, setMsgs] = useState<ChatMsg[]>([initialGreeting]);
+
+  const [msgs, setMsgs] = useState<ChatMsg[]>([getGreeting()]);
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const resetChat = () => {
-    setMsgs([initialGreeting]);
+    setMsgs([getGreeting()]);
     setHistory([]);
     setInput("");
   };
@@ -280,6 +294,30 @@ const CopilotChat: React.FC = () => {
             </div>
           </div>
         ))}
+        {msgs.length <= 1 && (
+          <div className="pt-2 flex flex-wrap gap-1.5">
+            {[
+              "Tell me about RideFlow",
+              "How does dynamic pricing work?",
+              "What safety features exist?",
+              "How do I book a ride?",
+            ].map((suggestion, idx) => (
+              <button
+                key={idx}
+                onClick={() => {
+                  setInput(suggestion);
+                  setTimeout(() => {
+                    const btn = document.getElementById("copilot-send-btn");
+                    if (btn) btn.click();
+                  }, 50);
+                }}
+                className="text-[11px] bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/20 rounded-full px-2.5 py-1 text-left transition hover:border-cyan-400 cursor-pointer"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        )}
         {loading && (
           <div className="flex justify-start">
             <div className="bg-slate-800/90 text-slate-400 border border-white/5 px-3.5 py-2 rounded-2xl text-xs flex items-center gap-2">
@@ -296,11 +334,12 @@ const CopilotChat: React.FC = () => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
-          placeholder="Ask about your ride, fare, or book a cab..."
+          placeholder="Ask about rides, fares, or safety..."
           className="text-xs bg-slate-800/90 border-white/10 text-slate-100 placeholder:text-slate-500 focus-visible:ring-cyan-500 h-9"
           disabled={loading}
         />
         <Button
+          id="copilot-send-btn"
           size="sm"
           className="btn-gradient px-3 h-9 shrink-0 text-xs font-semibold cursor-pointer"
           onClick={send}
