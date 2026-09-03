@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom"; // for navigation
-import axios from "axios";
+import api from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,8 @@ import {
   Eye,
   EyeOff,
   Car,
-  Shield
+  Shield,
+  ArrowLeft
 } from "lucide-react";
 
 interface FormData {
@@ -52,8 +53,7 @@ const AuthForm: React.FC = () => {
   // ---------------- Login ----------------
   const handleLogin = async () => {
     try {
-      // const response = await axios.post("http://localhost:5000/api/auth/login", {
-      const response = await axios.post("https://rideflow1.onrender.com/api/auth/login", {
+      const response = await api.post("/auth/login", {
         email: formData.email,
         password: formData.password
       });
@@ -92,8 +92,7 @@ const AuthForm: React.FC = () => {
         return;
       }
 
-      const response = await axios.post("https://rideflow1.onrender.com/api/auth/signup", {
-      // const response = await axios.post("http://localhost:5000/api/auth/signup", {
+      const response = await api.post("/auth/signup", {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
@@ -111,10 +110,35 @@ const AuthForm: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+      {/* Top Navigation Bar */}
+      <header className="border-b border-white/10 bg-slate-950/60 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-white transition-colors group px-3 py-1.5 rounded-xl hover:bg-white/10 border border-white/10"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            Back to Home
+          </button>
+          <h1
+            onClick={() => navigate("/")}
+            className="text-2xl font-black text-gradient cursor-pointer"
+          >
+            RideFlow
+          </h1>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center flex-1">
         <section className="space-y-6">
-          <p className="text-sm uppercase tracking-widest text-muted-foreground">RideFlow</p>
+          <p
+            onClick={() => navigate("/")}
+            className="text-sm uppercase tracking-widest text-muted-foreground cursor-pointer hover:text-teal-400 transition"
+          >
+            RideFlow
+          </p>
           <h1 className="text-4xl lg:text-5xl font-black">The kinetic pulse of modern logistics.</h1>
           <p className="text-lg text-muted-foreground max-w-lg">
             Join the elite network of riders and drivers moving the world forward with precision and speed. Optimize route flow, earn more, and ride safely.

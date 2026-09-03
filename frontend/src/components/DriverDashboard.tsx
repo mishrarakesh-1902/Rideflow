@@ -161,9 +161,9 @@ const DriverDashboard = () => {
 
     if (!token) {
       // Not logged in — redirect to login page
-      console.warn('Driver not authenticated, redirecting to login');
+      console.warn('Driver not authenticated, redirecting to /auth');
       localStorage.removeItem('user');
-      navigate('/');
+      navigate('/auth');
       return;
     }
 
@@ -232,10 +232,10 @@ const DriverDashboard = () => {
       const status = err?.response?.status;
       const msg = err?.response?.data?.message;
       if (status === 401 && (msg === 'No token provided' || msg === 'Invalid token' || msg === 'User not found')) {
-        console.warn('Driver auth missing/invalid — clearing token and redirecting');
+        console.warn('Driver auth missing/invalid — clearing token and redirecting to /auth');
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        navigate('/');
+        navigate('/auth');
       }
     }
   };

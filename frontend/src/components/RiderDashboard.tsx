@@ -102,13 +102,25 @@ const RiderDashboard: React.FC = () => {
     };
   }, []);
 
-  const startSearch = (bookingId: string, payload?: any) => {
+  // Check authentication on mount
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    if (!token || !user) {
+      console.warn("Rider not authenticated, redirecting to /auth");
+      navigate("/auth");
+      return;
+    }
+    fetchMyActiveBooking();
+  }, []);
+
+  const startSearch = (bookingId: string, payload?: any, initialTime: number = 60) => {
     if (searchTimerRef.current) clearInterval(searchTimerRef.current);
     if (payload) setSearchPayload(payload);
     setIsSearching(true);
-    setSearchCountdown(60);
+    setSearchCountdown(initialTime);
 
-    let timeLeft = 60;
+    let timeLeft = initialTime;
     searchTimerRef.current = setInterval(async () => {
       timeLeft -= 1;
       setSearchCountdown(timeLeft);
@@ -155,21 +167,76 @@ const RiderDashboard: React.FC = () => {
     toast({ title: 'Search Cancelled', description: 'Your ride request has been cancelled.' });
   };
 
-  // Helper: fetch user's active booking (accepted/started)
+  // Helper: fetch user's active booking (requested, accepted, or started)
   const fetchMyActiveBooking = async () => {
     try {
       const resp = await api.get('/rides/my');
       const bookings = resp.data.bookings || [];
-      // pick the most recent booking that is accepted or started
-      const active = bookings.find((b:any) => b.status === 'accepted' || b.status === 'started' || b.status === 'in_progress');
+      // pick the most recent active booking
+      const active = bookings.find((b: any) =>
+        b.status === 'requested' ||
+        b.status === 'accepted' ||
+        b.status === 'started' ||
+        b.status === 'in_progress'
+      );
+
       if (active) {
-        stopSearch();
-        setActiveBookingId(active._id);
-        setActiveBooking(active);
+        const pCoords = active.pickup?.location?.coordinates;
+        const dCoords = active.destination?.location?.coordinates;
+
+        if (active.pickup?.address) setPickup(active.pickup.address);
+        if (active.destination?.address) setDestination(active.destination.address);
+        if (pCoords) setSelectedPickupCenter(pCoords);
+        if (dCoords) setSelectedDestCenter(dCoords);
+        if (active.fare) setEstFare(active.fare);
+        if (active.estimatedTimeMin) setEstETA(active.estimatedTimeMin);
         if (active.fareExplanation) setFareExplanation(active.fareExplanation);
-        if (active.otp) setAcceptedOtp(String(active.otp));
+
+        // Fetch route geometry for Mapbox so the blue line appears on the map
+        if (pCoords && dCoords && MAPBOX_TOKEN) {
+          try {
+            const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${pCoords[0]},${pCoords[1]};${dCoords[0]},${dCoords[1]}?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`;
+            const r = await fetch(url);
+            const d = await r.json();
+            if (d?.routes?.[0]?.geometry) {
+              setRouteGeoJSON({
+                type: "Feature",
+                geometry: d.routes[0].geometry,
+                properties: {},
+              });
+            }
+          } catch (e) {
+            console.warn("Failed to fetch route on booking restore:", e);
+          }
+        }
+
+        if (active.status === 'requested') {
+          // Calculate remaining search seconds from createdAt
+          const createdTime = new Date(active.createdAt).getTime();
+          const elapsedSec = Math.floor((Date.now() - createdTime) / 1000);
+          const remainingSec = Math.max(0, 60 - elapsedSec);
+
+          if (remainingSec > 0) {
+            setActiveBookingId(active._id);
+            startSearch(active._id, active, remainingSec);
+          } else {
+            setNoDriverModalOpen(true);
+          }
+        } else {
+          // Accepted / In Progress
+          stopSearch();
+          setActiveBookingId(active._id);
+          setActiveBooking(active);
+          if (active.otp) setAcceptedOtp(String(active.otp));
+        }
+
         // ensure we join booking room to receive live updates
-        try { const s = getSocket() || initSocket(); s.emit('join:booking', { bookingId: active._id }); } catch (e) { console.warn('join booking in fetchMyActiveBooking failed', e); }
+        try {
+          const s = getSocket() || initSocket();
+          s.emit('join:booking', { bookingId: active._id });
+        } catch (e) {
+          console.warn('join booking in fetchMyActiveBooking failed', e);
+        }
       }
       return active;
     } catch (err) {

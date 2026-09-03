@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import {
   Star, 
   ChevronRight,
 } from "lucide-react";
+import CopilotChat from "@/components/CopilotChat";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("rider");
@@ -44,6 +45,7 @@ const Index = () => {
   const [destinationSuggestions, setDestinationSuggestions] = useState<any[]>([]);
   const [selectedPickup, setSelectedPickup] = useState<[number, number] | null>(null);
   const [selectedDest, setSelectedDest] = useState<[number, number] | null>(null);
+  const [routeDistanceKm, setRouteDistanceKm] = useState<number>(0);
   const [estFare, setEstFare] = useState<number | null>(null);
   const [estETA, setEstETA] = useState<number | null>(null);
   const [requesting, setRequesting] = useState(false);
@@ -83,11 +85,11 @@ const Index = () => {
         const json = await res.json();
         if (json && json.routes && json.routes.length > 0) {
           const route = json.routes[0];
-          const distKm = (route.distance || 0) / 1000;
-          const durMin = Math.round((route.duration || 0) / 60);
-          const fareRupees = 30 + 12 * distKm;
-          setEstFare(Math.round(fareRupees * 100));
+          const distKm = Math.round(((route.distance || 0) / 1000) * 10) / 10;
+          const durMin = Math.max(1, Math.round((route.duration || 0) / 60));
+          setRouteDistanceKm(distKm);
           setEstETA(durMin);
+          setEstFare(Math.max(5000, Math.round(distKm * 10 * 100)));
         }
       } catch (e) {
         console.warn("Estimate failed", e);
@@ -123,20 +125,44 @@ const Index = () => {
     }
   };
 
+  const rideOptions = useMemo(() => {
+    const dist = routeDistanceKm > 0 ? routeDistanceKm : 5;
+    const perKm = 10;
+    const econPaise = Math.max(5000, Math.round(dist * perKm * 0.8 * 100));
+    const stdPaise = Math.max(5000, Math.round(dist * perKm * 1.0 * 100));
+    const premPaise = Math.max(7500, Math.round(dist * perKm * 1.5 * 100));
+
+    return [
+      { id: "economy", name: "Economy", price: econPaise, display: `₹${(econPaise / 100).toFixed(2)}`, time: "5 min", icon: <Car className="w-5 h-5" /> },
+      { id: "standard", name: "Standard", price: stdPaise, display: `₹${(stdPaise / 100).toFixed(2)}`, time: "3 min", icon: <Car className="w-5 h-5" /> },
+      { id: "premium", name: "Premium", price: premPaise, display: `₹${(premPaise / 100).toFixed(2)}`, time: "2 min", icon: <Car className="w-5 h-5" /> },
+    ];
+  }, [routeDistanceKm]);
+
+  useEffect(() => {
+    const selected = rideOptions.find((r) => r.id === rideType);
+    if (selected) {
+      setEstFare(selected.price);
+    }
+  }, [rideType, rideOptions]);
+
   const handleRequestRideMini = async () => {
     if (!selectedPickup || !selectedDest) return alert("Select pickup and destination");
     if (requesting) return;
     setRequesting(true);
     try {
+      const selectedOption = rideOptions.find((r) => r.id === rideType);
       const payload = {
         pickup: { address: pickup, location: { type: "Point", coordinates: selectedPickup } },
         destination: { address: destination, location: { type: "Point", coordinates: selectedDest } },
-        rideType: "standard",
+        rideType,
+        fare: selectedOption ? selectedOption.price : estFare,
         paymentMethod: "cash",
       };
       const token = localStorage.getItem("token");
       if (!token) {
         alert("Please login to request a ride");
+        window.location.href = "/auth";
         setRequesting(false);
         return;
       }
@@ -151,7 +177,7 @@ const Index = () => {
         setRequesting(false);
         return;
       }
-      window.location.href = "/dashboard/rider";
+      window.location.href = "/rider";
     } catch (e) {
       console.error("Request mini ride failed", e);
       alert("Failed to request ride");
@@ -159,12 +185,6 @@ const Index = () => {
       setRequesting(false);
     }
   };
-
-  const rideOptions = [
-    { id: "economy", name: "Economy", price: 850, display: "₹8.50", time: "5 min", icon: <Car className="w-5 h-5" /> },
-    { id: "standard", name: "Standard", price: 1250, display: "₹12.50", time: "3 min", icon: <Car className="w-5 h-5" /> },
-    { id: "premium", name: "Premium", price: 1800, display: "₹18.00", time: "2 min", icon: <Car className="w-5 h-5" /> },
-  ];
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -339,6 +359,9 @@ const Index = () => {
       <footer className="border-t border-white/10 py-8 bg-black/50">
         <div className="max-w-7xl mx-auto px-6 text-center text-sm text-gray-400"><p>© 2024 RideFlow. All rights reserved.</p></div>
       </footer>
+
+      {/* 🤖 AI Assistant Mascot & Copilot */}
+      <CopilotChat />
     </div>
   );
 };
