@@ -96,7 +96,11 @@ function initSockets(server) {
     cors: {
       origin: process.env.CORS_ORIGIN || "*",
       methods: ["GET", "POST"],
+      credentials: true,
     },
+    transports: ["polling", "websocket"],
+    pingTimeout: 60000,
+    pingInterval: 25000,
   });
 
   io.on("connection", async (socket) => {

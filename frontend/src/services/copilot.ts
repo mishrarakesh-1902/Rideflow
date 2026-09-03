@@ -11,5 +11,6 @@ export async function sendCopilotMessage(
   return res.data as {
     reply: string;
     history: any[];
+    booking?: any;
   };
 }

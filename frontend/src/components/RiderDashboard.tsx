@@ -265,6 +265,14 @@ const RiderDashboard: React.FC = () => {
     };
     socket.on("booking:created", onBookingCreated);
 
+    const onCustomAIBooking = (e: any) => {
+      console.log("🚕 ai:booking-created window event received:", e.detail);
+      if (e.detail) {
+        onBookingCreated(e.detail);
+      }
+    };
+    window.addEventListener("ai:booking-created", onCustomAIBooking);
+
     const onRideAccepted = (data: any) => {
       console.log("🔔 ride:accepted received", data);
       stopSearch();
@@ -429,6 +437,8 @@ const RiderDashboard: React.FC = () => {
     });
 
     return () => {
+      socket.off("booking:created", onBookingCreated);
+      window.removeEventListener("ai:booking-created", onCustomAIBooking);
       socket.off("ride:accepted", onRideAccepted);
       socket.off("driver:location", onDriverLocation);
       socket.off('ride:completed');

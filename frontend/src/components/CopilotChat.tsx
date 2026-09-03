@@ -39,12 +39,16 @@ const CopilotChat: React.FC = () => {
     setLoading(true);
 
     try {
-      const { reply, history: newHistory } = await sendCopilotMessage(
+      const { reply, history: newHistory, booking } = await sendCopilotMessage(
         userText,
         history.slice(-10)
       );
       setHistory(newHistory);
       setMsgs((m) => [...m, { role: "assistant", text: reply }]);
+
+      if (booking) {
+        window.dispatchEvent(new CustomEvent("ai:booking-created", { detail: booking }));
+      }
     } catch (e: any) {
       console.error("Copilot request error:", e);
       setMsgs((m) => [

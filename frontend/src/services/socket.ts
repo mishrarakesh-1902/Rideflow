@@ -94,14 +94,30 @@ import { API_BASE } from "./api";
 let socket: Socket | null = null;
 
 export function initSocket() {
-  if (socket) return socket;
+  if (socket && socket.connected) return socket;
+
   // API_BASE is like "http://localhost:5000/api" => remove trailing /api for socket origin
-  const origin = (API_BASE || "http://localhost:5000").replace(/\/api\/?$/i, "");
+  let origin = (API_BASE || "http://localhost:5000").replace(/\/api\/?$/i, "");
+  if (!origin.startsWith("http") && typeof window !== "undefined") {
+    origin = window.location.origin;
+  }
   const token = localStorage.getItem("token") || null;
 
   socket = io(origin, {
-    auth: { token }, // server should validate handshake via socket.handshake.auth.token
-    transports: ["websocket"],
+    auth: { token },
+    transports: ["polling", "websocket"], // Allow HTTP long-polling fallback for Render/proxies
+    reconnection: true,
+    reconnectionAttempts: 10,
+    reconnectionDelay: 1500,
+    timeout: 20000,
+  });
+
+  socket.on("connect", () => {
+    console.log("✅ Socket connected:", socket?.id);
+  });
+
+  socket.on("connect_error", (err) => {
+    console.warn("⚠️ Socket connection error (retrying with polling/ws):", err.message);
   });
 
   return socket;

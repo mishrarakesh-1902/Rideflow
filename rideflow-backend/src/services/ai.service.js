@@ -125,6 +125,8 @@ async function runCopilot({
     },
   ];
 
+  let createdBooking = null;
+
   // Safety valve: max 5 turns
   for (let turn = 0; turn < 5; turn++) {
     const response = await ai.models.generateContent({
@@ -150,6 +152,7 @@ async function runCopilot({
       return {
         reply: replyText,
         history: messages,
+        booking: createdBooking,
       };
     }
 
@@ -182,6 +185,10 @@ async function runCopilot({
         call.args || {},
         userId
       );
+
+      if (call.name === 'book_ride' && result?.success) {
+        createdBooking = result;
+      }
 
       toolResults.push({
         functionResponse: {
