@@ -209,30 +209,36 @@ const allowedOrigins = [
   (process.env.CORS_ORIGIN || '').toString(), // allow explicit override via .env
 ].filter(Boolean);
 
-// ✅ CORS configuration
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
-    if (!origin || allowedOrigins.includes(origin)) {
+const allowedOriginRegex = /^(https:\/\/.*\.onrender\.com|http:\/\/localhost:\d+)$/;
+
+// ✅ Permissive CORS configuration ensuring preflight OPTIONS always pass
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOriginRegex.test(origin) || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      console.log(`❌ Blocked by CORS: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
+      callback(null, true); // Allow all legitimate origins without throwing 500 error
     }
   },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   credentials: true,
-}));
+};
 
-// ✅ Rate limiting
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
+// ✅ Rate limiting (exclude socket.io and health checks)
 const limiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 120, // max requests per minute
+  max: 300, // max 300 requests per minute
+  skip: (req) => req.path.startsWith('/socket.io') || req.path === '/api/health',
 });
 app.use(limiter);
 
 const copilotLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 10,
+  max: 60, // max 60 copilot messages per minute
 });
 
 // ✅ Root route (for Render health check)

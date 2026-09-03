@@ -94,11 +94,12 @@ function initSockets(server) {
   const { Server } = require("socket.io");
   io = new Server(server, {
     cors: {
-      origin: process.env.CORS_ORIGIN || "*",
-      methods: ["GET", "POST"],
+      origin: true,
+      methods: ["GET", "POST", "OPTIONS"],
       credentials: true,
     },
     transports: ["polling", "websocket"],
+    allowEIO3: true,
     pingTimeout: 60000,
     pingInterval: 25000,
   });
