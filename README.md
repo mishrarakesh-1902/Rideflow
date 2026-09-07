@@ -4,7 +4,7 @@
 
 # ⚡ RideFlow — Real-Time Ride-Hailing Platform
 
-**A full-stack Uber-style ride-hailing application with real-time driver tracking, live Mapbox maps, OTP-protected rides, and a dedicated Driver Hub — built for modern urban mobility.**
+**A full-stack Uber-style ride-hailing application with real-time driver tracking, live Mapbox maps, OTP-protected rides, an AI support copilot, and a dedicated Driver Hub — built for modern urban mobility.**
 
 <br/>
 
@@ -16,6 +16,7 @@
 [![Mapbox](https://img.shields.io/badge/Mapbox-Live_Maps-000000?style=for-the-badge&logo=mapbox&logoColor=white)](https://www.mapbox.com/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Database-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 [![Express](https://img.shields.io/badge/Express.js-REST_API-000000?style=for-the-badge&logo=express)](https://expressjs.com/)
+[![Gemini](https://img.shields.io/badge/Gemini_API-GenAI_Layer-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white)](https://ai.google.dev/)
 
 </div>
 
@@ -26,6 +27,7 @@
 - [Overview](#-overview)
 - [App Screenshots](#-app-screenshots)
 - [Key Features](#-key-features)
+- [GenAI Features](#-genai-features)
 - [Tech Stack](#-tech-stack)
 - [System Architecture](#-system-architecture)
 - [Real-Time Flow](#-real-time-event-flow)
@@ -40,7 +42,7 @@
 
 ## 🚗 Overview
 
-**RideFlow** is a production-grade, real-time ride-hailing web application modelled after Uber/Ola. It connects riders and drivers through a live WebSocket layer, renders interactive maps via Mapbox GL JS, and supports multi-tier ride types with dynamic fare estimation.
+**RideFlow** is a production-grade, real-time ride-hailing web application modelled after Uber/Ola. It connects riders and drivers through a live WebSocket layer, renders interactive maps via Mapbox GL JS, supports multi-tier ride types with dynamic fare estimation, and layers in a GenAI service for in-app support and fare/fraud transparency.
 
 > _"500K+ Active Users · 50K+ Drivers · 4.9★ Avg Rating"_
 
@@ -54,6 +56,8 @@
 | Mapbox autocomplete | Location suggestions dropdown with geocoding API |
 | Multi-tier pricing | Economy ₹8.50 · Standard ₹12.50 · Premium ₹18.00 |
 | OTP-protected rides | Secure ride start verification |
+| AI support copilot | Agentic chat assistant answering from live booking data via tool-calling |
+| Fare transparency & anomaly flags | Rules-based fraud detection + AI-generated plain-language fare breakdowns |
 | 1,000+ concurrent users | Tested under load with Socket.IO clustering |
 
 ---
@@ -87,6 +91,14 @@
 
 ---
 
+### 🤖 AI Support Copilot — In-App Assistant
+
+> Floating chat widget on the rider dashboard. Riders ask questions in plain English ("where's my driver," "why did this cost more than last time," "cancel my ride") and get answers backed by live booking data, not guesses.
+
+*(Add a screenshot here once captured — e.g. `screenshots/rideflow_copilot.png`)*
+
+---
+
 ## ✨ Key Features
 
 ### 🚗 Rider Experience
@@ -96,6 +108,7 @@
 - **3 Ride Tiers** — Economy (₹8.50) · Standard (₹12.50) · Premium (₹18.00) with per-km pricing
 - **OTP Verification** — Secure ride start with one-time password
 - **Payment Support** — Online card payment (Visa/Mastercard integration)
+- **AI Fare Breakdown** — Every fare shown with a plain-language, AI-generated explanation of how it was calculated
 
 ### 🚖 Driver Hub
 - **Real-Time Request Feed** — Incoming ride requests pushed via Socket.IO instantly
@@ -114,6 +127,64 @@
 - **Geocoding API** — Forward geocoding for autocomplete and reverse geocoding for pin labels
 - **Driver Pin Rendering** — Custom map markers updated in real-time as drivers move
 
+### 🤖 GenAI Layer
+- **Agentic Support Copilot** — Tool-calling chat assistant scoped to the logged-in user's own bookings
+- **AI Fare Explainability** — Plain-language breakdown of every fare, generated from the actual calculated numbers
+- **Rules-Based Anomaly Flagging** — Deterministic fraud-signal detection (fare mismatches, repeated rider-driver pairing) with an AI-written reviewer summary
+
+*(Full breakdown in [GenAI Features](#-genai-features) below.)*
+
+---
+
+## 🤖 GenAI Features
+
+RideFlow includes a GenAI service layer built on the **Gemini API**, added on top of the
+core booking system. It follows one strict design rule throughout: **the AI never
+decides anything — it only explains decisions and data that the backend already
+computed.**
+
+### 1. AI Support Copilot (Agentic, Tool-Calling)
+
+A chat assistant, available from the rider dashboard, that answers questions like
+*"where's my driver," "why is this ride more expensive than my last one,"* or *"cancel
+my ride"* — by calling real backend functions, never by guessing.
+
+- Built with Gemini's function-calling API (`@google/genai`)
+- The model is given a fixed set of tools — `get_my_bookings`, `get_booking`,
+  `cancel_booking` — each backed by the **same Mongoose queries and business rules**
+  used by the main REST API (e.g. a ride that's already `started` can't be cancelled
+  through the copilot either)
+- Every tool call is **ownership-scoped**: the AI can only ever read or modify
+  bookings belonging to the authenticated user making the request
+- A capped tool-call loop (max 5 round-trips per message) prevents runaway requests
+- New endpoint: `POST /api/copilot/chat` (JWT-protected, separately rate-limited)
+
+### 2. Fare Explainability + Anomaly Flagging
+
+A hybrid **rules + AI** layer that makes every fare transparent and flags suspicious
+booking patterns for review.
+
+- **Detection is 100% deterministic — no AI involved.** A dedicated service compares
+  the charged fare against the expected `base fare + distance × rate`, and separately
+  checks whether the same rider–driver pair has completed an unusually high number of
+  rides together in a short window (a lightweight fraud signal).
+- **Narration is where the AI comes in.** Once detection has made a decision, Gemini
+  turns it into a sentence:
+  - Normal fare → a friendly one-line breakdown shown to the rider (e.g. *"₹180 = ₹30
+    base fare + ₹150 for 6.2 km at ₹12/km — no surge applied."*)
+  - Flagged booking → a neutral, factual summary for manual review (never shown to
+    riders/drivers)
+- **AI-outage-safe by design.** Every narration call has a plain-template fallback, so
+  a ride booking can never fail or hang because the AI provider is down or rate-limited.
+
+### Why this architecture
+
+Both features are deliberately split into a **decision layer** (plain code — auth
+checks, database queries, arithmetic) and a **narration/agent layer** (the LLM). This
+keeps the system auditable: fraud flags and cancellations are never something an LLM
+can hallucinate into existence — they're either real database facts or real rule
+evaluations, with the AI only ever responsible for turning that into language.
+
 ---
 
 ## 🛠 Tech Stack
@@ -128,6 +199,7 @@
 | **Maps** | Mapbox GL JS + Mapbox Geocoding API |
 | **Database** | MongoDB + Mongoose |
 | **Auth** | JWT (JSON Web Tokens) + OTP system |
+| **GenAI** | Gemini API (`@google/genai`) — function calling / tool use for the support copilot and fare/anomaly narration |
 | **State Management** | React Context API / useState |
 | **Payment** | Online card integration (Visa/Mastercard) |
 | **Deployment** | (Add your platform — Vercel / Render / Railway) |
@@ -147,6 +219,7 @@
 │   │  React + Tailwind    │      │    React + Tailwind          │  │
 │   │  Mapbox GL JS        │      │    Mapbox GL JS              │  │
 │   │  Socket.IO client    │      │    Socket.IO client          │  │
+│   │  AI Copilot Widget   │      │                              │  │
 │   └──────────┬───────────┘      └────────────┬─────────────────┘  │
 └──────────────┼────────────────────────────────┼────────────────────┘
                │ WebSocket / HTTP               │ WebSocket / HTTP
@@ -159,7 +232,14 @@
 │  │  /api/drivers   │  │  ride:request    │  │                  │  │
 │  │  /api/users     │  │  ride:accept     │  │                  │  │
 │  │  /api/fare      │  │  location:update │  │                  │  │
+│  │  /api/copilot   │  │                  │  │                  │  │
 │  └─────────────────┘  └──────────────────┘  └──────────────────┘  │
+│                                                                    │
+│  ┌───────────────────────────────────────────────────────────────┐ │
+│  │                    GenAI Service Layer                        │ │
+│  │  anomalyDetection.service.js (rules) · fareInsight.service.js │ │
+│  │  (Gemini narration) · ai.service.js (copilot agent loop)      │ │
+│  └───────────────────────────────────────────────────────────────┘ │
 │                                                                    │
 │  ┌───────────────────────────────────────────────────────────────┐ │
 │  │                    MongoDB (Mongoose)                         │ │
@@ -168,9 +248,9 @@
 └────────────────────────────────────────────────────────────────────┘
                                │
                ┌───────────────▼───────────────┐
-               │     Mapbox APIs               │
-               │  Geocoding · Directions        │
-               │  GL JS Tiles                  │
+               │     External APIs             │
+               │  Mapbox (Geocoding/Directions) │
+               │  Gemini API (GenAI)            │
                └───────────────────────────────┘
 ```
 
@@ -184,6 +264,8 @@ Rider enters pickup & destination
           ▼
   Fare calculated (ride type × distance)
           │
+          ├──► Anomaly detection runs (rules) ──► if flagged, AI writes reviewer summary
+          ├──► AI writes plain-language fare explanation for the rider
           ▼
   Rider clicks "Book Now"
           │
@@ -194,6 +276,8 @@ Rider enters pickup & destination
           │                    in Driver Hub Requests panel
           │                              │
           │                    Driver clicks Accept ──► Socket.IO ──► Rider notified
+          │                              │
+          │                    Repeated-pairing check runs (rules) on accept
           │
           ▼
   OTP generated & shown to rider
@@ -209,6 +293,32 @@ Rider enters pickup & destination
   Trip complete → Earnings updated in Driver Hub
 ```
 
+### AI Copilot Chat Flow
+
+```
+Rider opens chat widget, asks a question
+          │
+          ▼
+  POST /api/copilot/chat (JWT-protected)
+          │
+          ▼
+  Gemini decides: does this need real data?
+          │
+     ┌────┴────┐
+     │  Yes    │
+     ▼         │
+  Tool call (e.g. get_booking) ──► ownership check ──► real Mongoose query
+     │
+     ▼
+  Real data returned to Gemini
+     │
+     ▼
+  Gemini writes the final plain-English reply
+     │
+     ▼
+  Reply shown in the chat widget
+```
+
 ---
 
 ## ⚙ Getting Started (Local Setup)
@@ -219,6 +329,7 @@ Rider enters pickup & destination
 - npm / yarn
 - MongoDB (local or Atlas)
 - Mapbox account (free tier works)
+- Gemini API key (free tier available at [aistudio.google.com](https://aistudio.google.com)) — required for the AI copilot and fare/anomaly narration features
 
 ### 1. Clone the Repository
 
@@ -259,6 +370,10 @@ Visit **[http://localhost:5173](http://localhost:5173)** for the rider app.
 
 Driver Hub is accessible at **[http://localhost:5173/driver](http://localhost:5173/driver)** (or separate port depending on setup).
 
+> **Note:** If `GEMINI_API_KEY` isn't set, ride booking still works — fare
+> explanations just fall back to a plain (non-AI) template, and the copilot chat
+> widget will return an error until a key is configured.
+
 ---
 
 ## 📁 Project Structure
@@ -272,11 +387,14 @@ Rideflow/
 │   │   │   ├── BookingCard.jsx       # Pickup → Destination → Fare card
 │   │   │   ├── MapView.jsx           # Mapbox GL JS map wrapper
 │   │   │   ├── RideTypeSelector.jsx  # Economy / Standard / Premium
-│   │   │   └── LocationSearch.jsx    # Mapbox Geocoding autocomplete
+│   │   │   ├── LocationSearch.jsx    # Mapbox Geocoding autocomplete
+│   │   │   └── CopilotChat.jsx       # AI support copilot chat widget
 │   │   ├── pages/
 │   │   │   ├── Home.jsx              # Hero + Booking UI
 │   │   │   ├── DriverHub.jsx         # Driver dashboard + live map
 │   │   │   └── RideTracking.jsx      # Active ride + OTP flow
+│   │   ├── services/
+│   │   │   └── copilot.js            # Calls /api/copilot/chat
 │   │   ├── socket/
 │   │   │   └── socket.js             # Socket.IO client instance
 │   │   └── App.jsx
@@ -286,9 +404,17 @@ Rideflow/
 │   ├── routes/
 │   │   ├── rides.js                 # Ride CRUD + booking logic
 │   │   ├── drivers.js               # Driver endpoints
-│   │   └── users.js                 # Auth + user management
+│   │   ├── users.js                 # Auth + user management
+│   │   └── copilot.js               # POST /api/copilot/chat
+│   ├── controllers/
+│   │   └── copilot.controller.js    # Copilot chat request handler
+│   ├── services/
+│   │   ├── ai.service.js            # Gemini agent loop (tool-calling)
+│   │   ├── copilotTools.js          # Ownership-scoped tools the copilot can call
+│   │   ├── anomalyDetection.service.js  # Rules-based fraud/anomaly checks
+│   │   └── fareInsight.service.js   # Gemini fare + anomaly narration
 │   ├── models/
-│   │   ├── Ride.js                  # Ride schema
+│   │   ├── Ride.js                  # Ride schema (+ fareExplanation, anomalyFlags, anomalySummary)
 │   │   ├── Driver.js                # Driver schema
 │   │   └── User.js                  # User schema
 │   ├── socket/
@@ -300,7 +426,8 @@ Rideflow/
 ├── screenshots/                     # README screenshots (commit here)
 │   ├── rideflow_hero.png
 │   ├── rideflow_booking.png
-│   └── rideflow_driver.png
+│   ├── rideflow_driver.png
+│   └── rideflow_copilot.png
 │
 └── README.md
 ```
@@ -316,6 +443,7 @@ PORT=5000
 MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/rideflow
 JWT_SECRET=your_jwt_secret_here
 OTP_EXPIRY_MINUTES=5
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 ### `client/.env`
@@ -336,6 +464,8 @@ VITE_MAPBOX_TOKEN=pk.eyJ1IjoieW91cnVzZXJuYW1lIiwiYSI6ImNr...
 | Real-time location update latency | < 200ms (Socket.IO) |
 | Mapbox map render time | < 1.2s (GL JS with dark tiles) |
 | Ride booking end-to-end latency | < 500ms request → driver notification |
+| AI copilot response time | Real-time tool-calling loop, capped at 5 round-trips per query |
+| Fare explanation AI-outage fallback | 100% — every AI call has a working non-AI fallback |
 | Active users (demo/portfolio) | 500K+ (platform stat) |
 | Driver pool | 50K+ drivers |
 | Avg rider rating | ⭐ 4.9 / 5.0 |
@@ -354,6 +484,10 @@ VITE_MAPBOX_TOKEN=pk.eyJ1IjoieW91cnVzZXJuYW1lIiwiYSI6ImNr...
 - [x] OTP-protected ride start
 - [x] Payment method integration (Visa/Mastercard)
 - [x] 1,000+ concurrent user load testing
+- [x] AI support copilot (agentic, tool-calling, Gemini API)
+- [x] AI-generated fare explainability
+- [x] Rules-based anomaly/fraud flagging
+- [ ] Admin dashboard for reviewing flagged bookings
 - [ ] Surge pricing algorithm
 - [ ] Ride history & receipts
 - [ ] In-app chat (rider ↔ driver)
