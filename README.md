@@ -68,7 +68,8 @@
 
 > Dark navy homepage with gradient hero text, inline ride booking card (Pickup → Destination → Ride Type), live fare estimate, ETA display, and live stats (500K+ Users · 50K+ Drivers · 4.9★).
 
-<img width="1568" height="767" alt="image" src="https://github.com/user-attachments/assets/3d96e791-aa95-476c-a5cc-32181aadb2e5" />
+<img width="1917" height="923" alt="image" src="https://github.com/user-attachments/assets/759e42ae-b0a9-431a-acb4-f3871169f821" />
+
 
 
 ---
@@ -77,7 +78,8 @@
 
 > Riders enter a pickup location and get real-time Mapbox autocomplete suggestions. The interactive dark map shows the driver pin live. Ride tiers (Economy ₹8.50 · Standard ₹12.50 · Premium ₹18.00) and ETA are shown alongside payment method (Visa ● 4242).
 
-<img width="1568" height="763" alt="image" src="https://github.com/user-attachments/assets/44847995-f39c-4c80-a17a-60950f03dba1" />
+<img width="1917" height="927" alt="image" src="https://github.com/user-attachments/assets/d52c867c-bc8f-4b39-a536-5b6b4b14fcd0" />
+
 
 
 ---
@@ -86,7 +88,8 @@
 
 > Dedicated driver interface showing today's stats (Earnings · Rides · Hours Driving · Rating), an incoming Requests panel with a live Mapbox map showing the driver's current position updated in real-time via Socket.IO.
 
-<img width="1568" height="710" alt="image" src="https://github.com/user-attachments/assets/a1de5f6e-68fc-4afd-8ef2-4e3e7f6b6585" />
+<img width="1917" height="968" alt="image" src="https://github.com/user-attachments/assets/c64756da-9122-406b-a48f-d03455e43f74" />
+
 
 
 ---
@@ -95,7 +98,8 @@
 
 > Floating chat widget on the rider dashboard. Riders ask questions in plain English ("where's my driver," "why did this cost more than last time," "cancel my ride") and get answers backed by live booking data, not guesses.
 
-*(Add a screenshot here once captured — e.g. `screenshots/rideflow_copilot.png`)*
+<img width="472" height="577" alt="image" src="https://github.com/user-attachments/assets/3d2406d2-d1a6-4ddb-a83d-7fce411e8a20" />
+
 
 ---
 
