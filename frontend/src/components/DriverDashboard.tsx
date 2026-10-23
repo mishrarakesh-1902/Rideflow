@@ -633,27 +633,27 @@ const DriverDashboard = () => {
 
   // Render
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col">
+    <div className="min-h-screen bg-[#F5F8FF] text-[#11152F] flex flex-col">
       {/* Header */}
-      <div className="glass-card rounded-none border-b border-white/10 p-3">
-        <div className="flex items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-gradient cursor-pointer" onClick={() => navigate("/")}>
-              Driver Hub
+      <div className="bg-white border-b border-[#E4EAF6] shadow-sm px-6 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-black text-[#304BFF] cursor-pointer" onClick={() => navigate("/")}>
+              RideFlow
             </h1>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground ml-4">Online: {isOnline ? '✓' : '✗'}</p>
+            <span className="text-xs bg-purple-50 text-purple-600 font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider border border-purple-200">Driver Hub</span>
           </div>
           <div className="flex items-center gap-2.5">
             <Button
               variant="outline"
               size="sm"
-              className="h-9 px-3 text-xs border-white/10 hover:bg-white/10 text-slate-200"
+              className="h-9 px-3 text-xs border-[#E4EAF6] hover:bg-[#F5F8FF] text-[#536184]"
               onClick={() => setHistoryModalOpen(true)}
             >
-              <History className="w-4 h-4 mr-1.5 text-teal-400" /> Ride History
+              <History className="w-4 h-4 mr-1.5 text-[#304BFF]" /> Ride History
             </Button>
-            <div className="flex items-center gap-2 px-2 py-1 bg-slate-800/80 rounded-lg border border-white/10">
-              <span className={`text-xs font-medium ${isOnline ? 'text-teal-400' : 'text-muted-foreground'}`}>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-[#F5F8FF] rounded-xl border border-[#E4EAF6]">
+              <span className={`text-xs font-semibold ${isOnline ? 'text-emerald-600' : 'text-[#536184]'}`}>
                 {isOnline ? 'ONLINE' : 'OFFLINE'}
               </span>
               <Switch checked={isOnline} onCheckedChange={handleToggleOnline} />
@@ -661,7 +661,7 @@ const DriverDashboard = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="hover:bg-white/10 text-slate-300 h-9 w-9"
+              className="hover:bg-[#F5F8FF] text-[#536184] h-9 w-9"
               onClick={() => setProfileModalOpen(true)}
               title="Profile Settings"
             >
@@ -669,15 +669,15 @@ const DriverDashboard = () => {
             </Button>
             <button
               type="button"
-              className="w-9 h-9 rounded-full bg-purple-500/20 border border-purple-500/40 flex items-center justify-center hover:bg-purple-500/30 transition-all text-purple-300 font-bold text-sm shadow-md shadow-purple-500/10 cursor-pointer"
+              className="w-9 h-9 rounded-full bg-purple-50 border border-purple-200 flex items-center justify-center hover:bg-purple-100 transition-all text-purple-600 font-bold text-sm cursor-pointer"
               onClick={() => setProfileModalOpen(true)}
               title="My Driver Profile"
             >
-              {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : <User className="w-4 h-4 text-purple-400" />}
+              {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
             </button>
             {pendingRequests.length > 0 && (
-              <div className="ml-1 px-2.5 py-1 bg-red-500/20 border border-red-500/30 rounded text-red-400 text-xs font-medium animate-pulse">
-                {pendingRequests.length} req
+              <div className="ml-1 px-2.5 py-1 bg-red-50 border border-red-200 rounded-full text-red-600 text-xs font-semibold animate-pulse">
+                {pendingRequests.length} new
               </div>
             )}
           </div>
@@ -687,97 +687,90 @@ const DriverDashboard = () => {
       {/* Main Layout: Left (Stats) | Center (Requests) | Right (Map) */}
       <div className="flex-1 flex overflow-hidden">
         {/* LEFT: Stats Panel */}
-        <div className="w-64 bg-slate-900/50 border-r border-white/10 p-4 overflow-y-auto">
+        <div className="w-64 bg-white border-r border-[#E4EAF6] p-4 overflow-y-auto shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold">Today's Stats</h2>
+            <h2 className="text-lg font-bold text-[#11152F]">Today's Stats</h2>
             <button
               type="button"
-              className="text-xs text-teal-400 hover:text-teal-300 flex items-center gap-1 cursor-pointer"
+              className="text-xs text-[#304BFF] hover:text-[#304BFF]/80 flex items-center gap-1 cursor-pointer font-semibold"
               onClick={() => setHistoryModalOpen(true)}
             >
               <History className="w-3 h-3" /> History
             </button>
           </div>
           <div className="space-y-3">
-            {/* Earnings */}
-            <div className="glass-card p-3 text-center">
-              <DollarSign className="w-6 h-6 mx-auto mb-2 text-teal-400" />
-              <div className="text-2xl font-bold text-gradient">₹{(todayStats.earnings/100).toFixed(2)}</div>
-              <div className="text-xs text-muted-foreground mt-1">Earnings</div>
+            <div className="p-3 text-center bg-[#F5F8FF] rounded-xl border border-[#E4EAF6]">
+              <DollarSign className="w-6 h-6 mx-auto mb-1.5 text-[#304BFF]" />
+              <div className="text-2xl font-bold text-[#304BFF]">&#8377;{(todayStats.earnings/100).toFixed(2)}</div>
+              <div className="text-xs text-[#536184] mt-0.5">Earnings</div>
             </div>
 
-            {/* Rides */}
-            <div className="glass-card p-3 text-center">
-              <Car className="w-6 h-6 mx-auto mb-2 text-blue-400" />
-              <div className="text-2xl font-bold">{todayStats.rides}</div>
-              <div className="text-xs text-muted-foreground mt-1">Rides</div>
+            <div className="p-3 text-center bg-[#F5F8FF] rounded-xl border border-[#E4EAF6]">
+              <Car className="w-6 h-6 mx-auto mb-1.5 text-blue-500" />
+              <div className="text-2xl font-bold text-[#11152F]">{todayStats.rides}</div>
+              <div className="text-xs text-[#536184] mt-0.5">Rides</div>
             </div>
 
-            {/* Hours */}
-            <div className="glass-card p-3 text-center">
-              <Clock className="w-6 h-6 mx-auto mb-2 text-purple-400" />
-              <div className="text-2xl font-bold">{todayStats.hours}h</div>
-              <div className="text-xs text-muted-foreground mt-1">Hours Driving</div>
+            <div className="p-3 text-center bg-[#F5F8FF] rounded-xl border border-[#E4EAF6]">
+              <Clock className="w-6 h-6 mx-auto mb-1.5 text-purple-500" />
+              <div className="text-2xl font-bold text-[#11152F]">{todayStats.hours}h</div>
+              <div className="text-xs text-[#536184] mt-0.5">Hours Driving</div>
             </div>
 
-            {/* Rating */}
-            <div className="glass-card p-3 text-center">
-              <Star className="w-6 h-6 mx-auto mb-2 fill-yellow-500 text-yellow-500" />
-              <div className="text-2xl font-bold">{todayStats.rating}</div>
-              <div className="text-xs text-muted-foreground mt-1">Rating</div>
+            <div className="p-3 text-center bg-[#F5F8FF] rounded-xl border border-[#E4EAF6]">
+              <Star className="w-6 h-6 mx-auto mb-1.5 fill-yellow-400 text-yellow-400" />
+              <div className="text-2xl font-bold text-[#11152F]">{todayStats.rating}</div>
+              <div className="text-xs text-[#536184] mt-0.5">Rating</div>
             </div>
 
-            {/* Active Ride Info */}
             {hasActiveRide && currentRide && (
               <>
-                <div className="pt-4 border-t border-white/10">
-                  <p className="text-xs uppercase text-muted-foreground mb-2">Active Ride</p>
-                  <div className="glass-card p-3 space-y-2 text-sm">
+                <div className="pt-3 border-t border-[#E4EAF6]">
+                  <p className="text-xs uppercase text-[#536184] font-semibold mb-2">Active Ride</p>
+                  <div className="p-3 space-y-2 text-sm bg-[#EAEFFF] rounded-xl border border-[#304BFF]/20">
                     <div>
-                      <p className="text-xs text-muted-foreground">Passenger</p>
-                      <p className="font-medium">{currentRide.rider?.name || 'Rider'}</p>
+                      <p className="text-xs text-[#536184]">Passenger</p>
+                      <p className="font-semibold text-[#11152F]">{currentRide.rider?.name || 'Rider'}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Fare</p>
-                      <p className="font-bold text-gradient">{currentRide.fare ? `₹${(currentRide.fare/100).toFixed(2)}` : '-'}</p>
+                      <p className="text-xs text-[#536184]">Fare</p>
+                      <p className="font-bold text-[#304BFF]">{currentRide.fare ? `&#8377;${(currentRide.fare/100).toFixed(2)}` : '-'}</p>
                     </div>
-                    <div className="pt-2 space-y-1">
-                      <Button size="sm" className="w-full btn-gradient text-xs h-8" onClick={isNavigating ? handleStopNavigation : handleStartNavigation}>
+                    <div className="pt-2 space-y-1.5">
+                      <Button size="sm" className="w-full text-xs h-8 bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] text-white hover:opacity-90" onClick={isNavigating ? handleStopNavigation : handleStartNavigation}>
                         {isNavigating ? 'Stop Navigation' : 'Start Navigation'}
                       </Button>
-                      <Button size="sm" className="w-full bg-blue-600 text-xs h-8" onClick={handleOpenGoogleMaps}>
+                      <Button size="sm" className="w-full bg-blue-500 hover:bg-blue-600 text-white text-xs h-8" onClick={handleOpenGoogleMaps}>
                         Google Maps
                       </Button>
                     </div>
                   </div>
                 </div>
 
-                {/* OTP Input */}
                 {currentRide?.status === 'accepted' && (
                   <div className="pt-2">
-                    <label className="text-xs uppercase text-muted-foreground">Verify OTP</label>
+                    <label className="text-xs uppercase text-[#536184] font-semibold">Verify Rider OTP</label>
                     <div className="flex gap-2 mt-2">
                       <Input
                         placeholder="6-digit OTP"
                         value={otpInput}
                         onChange={(e) => setOtpInput(e.target.value)}
-                        className="bg-slate-800 border-white/10 text-sm h-8"
+                        className="bg-[#F5F8FF] border-[#E4EAF6] text-sm h-9 text-[#11152F] placeholder:text-[#536184]"
                         maxLength={6}
                       />
-                      <Button size="sm" variant="outline" className="h-8 px-2 text-xs" onClick={regenerateOtp}>
-                        New OTP
+                      <Button size="sm" variant="outline" className="h-9 px-2 text-xs border-[#E4EAF6] text-[#536184]" onClick={regenerateOtp}>
+                        New
                       </Button>
-                      <Button size="sm" className="btn-gradient h-8 px-3" onClick={startRide} disabled={(otpInput || '').trim().length !== 6}>
+                      <Button size="sm" className="bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] text-white h-9 px-3 text-xs" onClick={startRide} disabled={(otpInput || '').trim().length !== 6}>
                         Start
                       </Button>
                     </div>
                   </div>
                 )}
 
-                {/* Complete / Actions */}
                 {currentRide?.status === 'started' && (
-                  <Button size="sm" className="w-full bg-green-600 mt-2 text-xs h-8" onClick={handleCompleteRide}>
-                    Complete Ride
+                  <Button size="sm" className="w-full bg-emerald-500 hover:bg-emerald-600 text-white mt-2 text-xs h-9" onClick={handleCompleteRide}>
+                    Complete Ride &#10003;
                   </Button>
                 )}
               </>
@@ -786,12 +779,15 @@ const DriverDashboard = () => {
         </div>
 
         {/* CENTER: Incoming Requests */}
-        <div className="w-72 bg-slate-900/30 border-r border-white/10 p-4 overflow-y-auto">
-          <h2 className="text-lg font-bold mb-4">Requests</h2>
+        <div className="w-72 bg-[#F5F8FF] border-r border-[#E4EAF6] p-4 overflow-y-auto">
+          <h2 className="text-lg font-bold mb-4 text-[#11152F]">Requests</h2>
           {pendingRequests.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p className="text-sm">No incoming requests</p>
-              <p className="text-xs mt-2">Stay online to receive ride requests</p>
+            <div className="text-center py-12 text-[#536184]">
+              <div className="w-12 h-12 rounded-full bg-white border border-[#E4EAF6] flex items-center justify-center mx-auto mb-3 shadow-sm">
+                <Car className="w-6 h-6 text-[#304BFF]/50" />
+              </div>
+              <p className="text-sm font-medium text-[#11152F]">No incoming requests</p>
+              <p className="text-xs mt-1 text-[#536184]">Stay online to receive ride requests</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -800,28 +796,28 @@ const DriverDashboard = () => {
                 const distKm = computeDistanceKm(driverMarkerPosition as any, pickupCoords as any);
                 const etaMin = distKm ? Math.max(1, Math.round((distKm / 40) * 60)) : null;
                 return (
-                  <div key={req.bookingId} className="glass-card p-3 space-y-2">
+                  <div key={req.bookingId} className="bg-white rounded-xl border border-[#E4EAF6] shadow-sm p-4 space-y-3 hover:border-[#304BFF]/40 transition-all">
                     <div className="flex items-center justify-between">
-                      <p className="font-semibold text-sm">{req.riderInfo?.name || 'Rider'}</p>
-                      <span className="text-xs bg-teal-500/20 text-teal-400 px-2 py-1 rounded">₹{req.fare ? (req.fare/100).toFixed(2) : '-'}</span>
+                      <p className="font-semibold text-sm text-[#11152F]">{req.riderInfo?.name || 'Rider'}</p>
+                      <span className="text-sm bg-[#EAEFFF] text-[#304BFF] font-bold px-2.5 py-1 rounded-full">&#8377;{req.fare ? (req.fare/100).toFixed(2) : '-'}</span>
                     </div>
-                    <div className="text-xs space-y-1 text-muted-foreground">
-                      <p className="truncate">📍 {req.pickup?.address || '—'}</p>
-                      <p className="truncate">🎯 {req.destination?.address || '—'}</p>
-                      {distKm && <p className="text-teal-400">⏱ {distKm.toFixed(1)} km • {etaMin} min away</p>}
+                    <div className="text-xs space-y-1.5 text-[#536184]">
+                      <p className="truncate flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />{req.pickup?.address || '&#8212;'}</p>
+                      <p className="truncate flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />{req.destination?.address || '&#8212;'}</p>
+                      {distKm && <p className="text-[#304BFF] font-semibold">&#9201; {distKm.toFixed(1)} km &bull; {etaMin} min away</p>}
                     </div>
-                    <div className="flex gap-2 pt-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="flex-1 h-7 text-xs"
+                    <div className="flex gap-2 pt-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 h-8 text-xs border-[#E4EAF6] text-[#536184] hover:bg-[#F5F8FF]"
                         onClick={() => setPendingRequests((p) => p.filter((x) => x.bookingId !== req.bookingId))}
                       >
                         Decline
                       </Button>
-                      <Button 
-                        size="sm" 
-                        className="flex-1 btn-gradient h-7 text-xs"
+                      <Button
+                        size="sm"
+                        className="flex-1 h-8 text-xs bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] text-white hover:opacity-90"
                         onClick={() => { setModalRequest(req); setAcceptModalOpen(true); }}
                       >
                         Accept
@@ -845,43 +841,36 @@ const DriverDashboard = () => {
               zoom: 12,
             }}
             style={{ width: "100%", height: "100%" }}
-            mapStyle="mapbox://styles/mapbox/dark-v11"
+            mapStyle="mapbox://styles/mapbox/streets-v12"
           >
-            {/* Driver marker */}
             {driverMarkerPosition && (
               <Marker longitude={driverMarkerPosition[0]} latitude={driverMarkerPosition[1]}>
-                <div className="text-3xl animate-pulse">🚗</div>
+                <div className="text-3xl animate-pulse">&#128663;</div>
               </Marker>
             )}
 
-            {/* Rider live marker */}
             {riderLiveLocation && (
               <Marker longitude={riderLiveLocation[0]} latitude={riderLiveLocation[1]}>
-                <div className="text-2xl">🧍</div>
+                <div className="text-2xl">&#129485;</div>
               </Marker>
             )}
 
-            {/* Pending request pickup markers */}
             {pendingRequests.map((r) => {
               const coords = r.pickup?.location?.coordinates;
               if (!coords) return null;
               return (
                 <Marker key={r.bookingId} longitude={coords[0]} latitude={coords[1]}>
-                  <div title={`Pickup: ${r.pickup?.address || ''}`} className="text-2xl">📍</div>
+                  <div title={`Pickup: ${r.pickup?.address || ''}`} className="text-2xl">&#128205;</div>
                 </Marker>
               );
             })}
 
-            {/* Route polyline */}
             {routeGeoJSON && (
               <Source id="route" type="geojson" data={routeGeoJSON}>
                 <Layer
                   id="route-line"
                   type="line"
-                  paint={{
-                    "line-color": "#3b82f6",
-                    "line-width": 5,
-                  }}
+                  paint={{ "line-color": "#304BFF", "line-width": 5 }}
                 />
               </Source>
             )}
@@ -891,34 +880,36 @@ const DriverDashboard = () => {
 
       {/* Accept modal */}
       <Dialog open={acceptModalOpen} onOpenChange={setAcceptModalOpen}>
-        <DialogContent className="bg-slate-900 border-white/10">
+        <DialogContent className="bg-white text-[#11152F] border border-[#E4EAF6] rounded-2xl shadow-xl">
           <DialogHeader>
-            <DialogTitle>Accept Ride Request?</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-[#11152F]">Accept Ride Request?</DialogTitle>
+            <DialogDescription className="text-[#536184]">
               Confirm accepting this ride. {modalRequest?.riderInfo?.name} will be notified.
             </DialogDescription>
           </DialogHeader>
 
           <div className="py-4 space-y-3">
-            <div className="glass-card p-3">
-              <p className="text-sm font-semibold">{modalRequest?.riderInfo?.name || 'Unknown Rider'}</p>
-              <p className="text-xs text-muted-foreground mt-1">📍 From: {modalRequest?.pickup?.address || '—'}</p>
-              <p className="text-xs text-muted-foreground">🎯 To: {modalRequest?.destination?.address || '—'}</p>
-              <p className="text-sm font-bold text-teal-400 mt-2">Fare: ₹{modalRequest?.fare ? (modalRequest.fare/100).toFixed(2) : '-'}</p>
+            <div className="p-4 rounded-xl bg-[#F5F8FF] border border-[#E4EAF6]">
+              <p className="text-sm font-semibold text-[#11152F]">{modalRequest?.riderInfo?.name || 'Unknown Rider'}</p>
+              <div className="mt-2 space-y-1.5 text-xs text-[#536184]">
+                <p className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" /> {modalRequest?.pickup?.address || '&#8212;'}</p>
+                <p className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" /> {modalRequest?.destination?.address || '&#8212;'}</p>
+              </div>
+              <p className="text-base font-bold text-[#304BFF] mt-3">Fare: &#8377;{modalRequest?.fare ? (modalRequest.fare/100).toFixed(2) : '-'}</p>
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAcceptModalOpen(false)}>Cancel</Button>
-            <Button className={`btn-gradient ${accepting ? 'opacity-70' : ''}`} onClick={confirmAccept} disabled={accepting}>
+            <Button variant="outline" className="border-[#E4EAF6] text-[#536184]" onClick={() => setAcceptModalOpen(false)}>Cancel</Button>
+            <Button className={`bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] text-white hover:opacity-90 ${accepting ? 'opacity-70' : ''}`} onClick={confirmAccept} disabled={accepting}>
               {accepting ? 'Accepting...' : 'Accept Ride'}
             </Button>
           </DialogFooter>
 
           {accepted && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg">
-              <div className="bg-slate-900 rounded-full p-8 border border-white/10">
-                <svg className="w-16 h-16 text-green-500 animate-scale-in" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-2xl">
+              <div className="bg-white rounded-full p-8 border border-emerald-200 shadow-lg">
+                <svg className="w-16 h-16 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path d="M20 6L9 17l-5-5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>

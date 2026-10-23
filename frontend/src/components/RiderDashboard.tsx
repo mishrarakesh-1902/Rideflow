@@ -919,29 +919,29 @@ const RiderDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col">
+    <div className="min-h-screen bg-[#F5F8FF] text-[#11152F] flex flex-col">
       {/* Top Navigation Bar */}
-      <div className="glass-card rounded-none border-b border-white/10 p-3">
-        <div className="flex items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-gradient cursor-pointer" onClick={() => navigate("/")}>
+      <div className="bg-white border-b border-[#E4EAF6] shadow-sm px-6 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-black text-[#304BFF] cursor-pointer" onClick={() => navigate("/")}>
               RideFlow
             </h1>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground ml-4">Rider</p>
+            <span className="text-xs bg-[#EAEFFF] text-[#304BFF] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider">Rider</span>
           </div>
           <div className="flex items-center gap-2.5">
             <Button
               variant="outline"
               size="sm"
-              className="h-9 px-3 text-xs border-white/10 hover:bg-white/10 text-slate-200"
+              className="h-9 px-3 text-xs border-[#E4EAF6] hover:bg-[#F5F8FF] text-[#536184]"
               onClick={() => setHistoryModalOpen(true)}
             >
-              <History className="w-4 h-4 mr-1.5 text-cyan-400" /> Ride History
+              <History className="w-4 h-4 mr-1.5 text-[#304BFF]" /> Ride History
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="hover:bg-white/10 text-slate-300 h-9 w-9"
+              className="hover:bg-[#F5F8FF] text-[#536184] h-9 w-9"
               onClick={() => setProfileModalOpen(true)}
               title="Profile Settings"
             >
@@ -949,11 +949,11 @@ const RiderDashboard: React.FC = () => {
             </Button>
             <button
               type="button"
-              className="w-9 h-9 rounded-full bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center hover:bg-cyan-500/30 transition-all text-cyan-300 font-bold text-sm shadow-md shadow-cyan-500/10 cursor-pointer"
+              className="w-9 h-9 rounded-full bg-[#EAEFFF] border border-[#304BFF]/30 flex items-center justify-center hover:bg-[#304BFF]/20 transition-all text-[#304BFF] font-bold text-sm cursor-pointer"
               onClick={() => setProfileModalOpen(true)}
               title="My Profile"
             >
-              {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : <User className="w-4 h-4 text-cyan-400" />}
+              {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
             </button>
           </div>
         </div>
@@ -961,76 +961,72 @@ const RiderDashboard: React.FC = () => {
 
       {/* Main content area */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel - Booking Form (25-30%) */}
-        <div className="w-80 bg-slate-900/70 border-r border-white/10 p-5 overflow-y-auto">
+        {/* Left Panel - Booking Form */}
+        <div className="w-80 bg-white border-r border-[#E4EAF6] p-5 overflow-y-auto shadow-sm">
           {isSearching && !activeBooking ? (
             <div className="space-y-5 py-2">
               {/* Radar Searching Animation */}
-              <div className="relative flex flex-col items-center justify-center py-6 overflow-hidden rounded-2xl bg-gradient-to-b from-cyan-500/10 via-slate-800/50 to-slate-900/80 border border-cyan-500/20">
-                <div className="absolute w-36 h-36 rounded-full border border-cyan-500/20 animate-ping opacity-75" />
-                <div className="absolute w-24 h-24 rounded-full border border-cyan-400/30 animate-pulse" />
-                <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-xl shadow-cyan-500/30 z-10">
+              <div className="relative flex flex-col items-center justify-center py-8 overflow-hidden rounded-2xl bg-gradient-to-b from-[#EAEFFF] to-white border border-[#E4EAF6]">
+                <div className="absolute w-36 h-36 rounded-full border-2 border-[#304BFF]/20 animate-ping opacity-75" />
+                <div className="absolute w-24 h-24 rounded-full border-2 border-[#304BFF]/30 animate-pulse" />
+                <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#304BFF] to-[#6B7FFF] flex items-center justify-center text-white shadow-xl shadow-[#304BFF]/30 z-10">
                   <Car className="w-8 h-8 animate-bounce" />
                 </div>
                 <div className="mt-4 text-center z-10 px-3">
-                  <h3 className="text-base font-bold text-slate-100 flex items-center justify-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                  <h3 className="text-base font-bold text-[#11152F] flex items-center justify-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#304BFF] animate-pulse" />
                     Looking for Drivers
                   </h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Matching with nearest available cars...
-                  </p>
+                  <p className="text-xs text-[#536184] mt-1">Matching with nearest available cars...</p>
                 </div>
               </div>
 
               {/* Countdown Timer Card */}
-              <div className="p-3.5 rounded-xl bg-slate-800/80 border border-white/10 space-y-2">
+              <div className="p-3.5 rounded-xl bg-[#F5F8FF] border border-[#E4EAF6] space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Search Timeout</span>
-                  <span className="font-mono font-bold text-cyan-300">{searchCountdown}s</span>
+                  <span className="text-[#536184]">Search Timeout</span>
+                  <span className="font-mono font-bold text-[#304BFF]">{searchCountdown}s</span>
                 </div>
-                {/* Progress Bar */}
-                <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-[#E4EAF6] rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 transition-all duration-1000 ease-linear rounded-full"
+                    className="h-full bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] transition-all duration-1000 ease-linear rounded-full"
                     style={{ width: `${(searchCountdown / 60) * 100}%` }}
                   />
                 </div>
               </div>
 
               {/* Route Summary Card */}
-              <div className="space-y-2.5 p-3.5 rounded-xl bg-slate-800/50 border border-white/5 text-xs">
+              <div className="space-y-2.5 p-3.5 rounded-xl bg-[#F5F8FF] border border-[#E4EAF6] text-xs">
                 <div className="flex items-start gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400 mt-1 shrink-0" />
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <span className="text-muted-foreground text-[10px] uppercase font-semibold">Pickup</span>
-                    <p className="text-slate-200 truncate">{pickup || searchPayload?.pickup?.address || '—'}</p>
+                    <span className="text-[#536184] text-[10px] uppercase font-semibold">Pickup</span>
+                    <p className="text-[#11152F] truncate">{pickup || searchPayload?.pickup?.address || '—'}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
-                  <div className="w-2 h-2 rounded-full bg-rose-400 mt-1 shrink-0" />
+                  <div className="w-2 h-2 rounded-full bg-rose-500 mt-1 shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <span className="text-muted-foreground text-[10px] uppercase font-semibold">Destination</span>
-                    <p className="text-slate-200 truncate">{destination || searchPayload?.destination?.address || '—'}</p>
+                    <span className="text-[#536184] text-[10px] uppercase font-semibold">Destination</span>
+                    <p className="text-[#11152F] truncate">{destination || searchPayload?.destination?.address || '—'}</p>
                   </div>
                 </div>
-                <div className="pt-2 border-t border-white/5">
+                <div className="pt-2 border-t border-[#E4EAF6]">
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Est. Fare</span>
-                    <span className="font-bold text-cyan-300">₹{estFare ? (estFare / 100).toFixed(2) : '--'}</span>
+                    <span className="text-[#536184]">Est. Fare</span>
+                    <span className="font-bold text-[#304BFF]">&#8377;{estFare ? (estFare / 100).toFixed(2) : '--'}</span>
                   </div>
                   {(fareExplanation || activeBooking?.fareExplanation || searchPayload?.fareExplanation) && (
-                    <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed italic">
+                    <p className="text-xs text-[#536184] mt-1.5 leading-relaxed italic">
                       {fareExplanation || activeBooking?.fareExplanation || searchPayload?.fareExplanation}
                     </p>
                   )}
                 </div>
               </div>
 
-              {/* Cancel Search Button */}
               <Button
                 variant="outline"
-                className="w-full border-red-500/30 text-red-400 hover:text-red-300 hover:bg-red-500/10 h-10 text-sm font-semibold"
+                className="w-full border-red-300 text-red-500 hover:text-red-600 hover:bg-red-50 h-10 text-sm font-semibold"
                 onClick={cancelSearch}
               >
                 Cancel Search
@@ -1038,27 +1034,29 @@ const RiderDashboard: React.FC = () => {
             </div>
           ) : !activeBooking ? (
             <div className="space-y-5">
-              <h2 className="text-2xl font-black">Where to?</h2>
-              <p className="text-sm text-muted-foreground">Request a ride in seconds</p>
+              <div>
+                <h2 className="text-2xl font-black text-[#11152F]">Where to?</h2>
+                <p className="text-sm text-[#536184]">Request a ride in seconds</p>
+              </div>
 
               {/* Pickup */}
-              <div className="space-y-2">
-                <label className="text-xs uppercase tracking-wider text-muted-foreground">Pickup</label>
+              <div className="space-y-1.5">
+                <label className="text-xs uppercase tracking-wider text-[#536184] font-semibold">Pickup</label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-3 w-4 h-4 text-cyan-400" />
+                  <MapPin className="absolute left-3 top-3 w-4 h-4 text-[#304BFF]" />
                   <Input
                     placeholder="Current location"
                     value={pickup}
                     onChange={(e) => setPickup(e.target.value)}
-                    className="pl-10 bg-slate-800 border-white/10 text-sm"
+                    className="pl-10 bg-[#F5F8FF] border-[#E4EAF6] text-sm text-[#11152F] placeholder:text-[#536184] focus-visible:ring-[#304BFF]"
                   />
                   {pickupSuggestions.length > 0 && (
-                    <div className="absolute z-50 w-full mt-1 bg-slate-800 rounded-lg border border-white/10 overflow-hidden max-h-40 overflow-y-auto">
+                    <div className="absolute z-50 w-full mt-1 bg-white rounded-lg border border-[#E4EAF6] shadow-lg overflow-hidden max-h-40 overflow-y-auto">
                       {pickupSuggestions.slice(0, 5).map((s) => (
                         <button
                           key={s.id}
                           type="button"
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-slate-700"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-[#F5F8FF] text-[#11152F] transition-colors"
                           onClick={() => handleSelectPickupSuggestion(s)}
                         >
                           {s.place_name}
@@ -1070,23 +1068,23 @@ const RiderDashboard: React.FC = () => {
               </div>
 
               {/* Destination */}
-              <div className="space-y-2">
-                <label className="text-xs uppercase tracking-wider text-muted-foreground">Destination</label>
+              <div className="space-y-1.5">
+                <label className="text-xs uppercase tracking-wider text-[#536184] font-semibold">Destination</label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-3 w-4 h-4 text-cyan-400" />
+                  <Navigation className="absolute left-3 top-3 w-4 h-4 text-[#304BFF]" />
                   <Input
                     placeholder="Where are you going?"
                     value={destination}
                     onChange={(e) => setDestination(e.target.value)}
-                    className="pl-10 bg-slate-800 border-white/10 text-sm"
+                    className="pl-10 bg-[#F5F8FF] border-[#E4EAF6] text-sm text-[#11152F] placeholder:text-[#536184] focus-visible:ring-[#304BFF]"
                   />
                   {destinationSuggestions.length > 0 && (
-                    <div className="absolute z-50 w-full mt-1 bg-slate-800 rounded-lg border border-white/10 overflow-hidden max-h-40 overflow-y-auto">
+                    <div className="absolute z-50 w-full mt-1 bg-white rounded-lg border border-[#E4EAF6] shadow-lg overflow-hidden max-h-40 overflow-y-auto">
                       {destinationSuggestions.slice(0, 5).map((s) => (
                         <button
                           key={s.id}
                           type="button"
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-slate-700"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-[#F5F8FF] text-[#11152F] transition-colors"
                           onClick={() => handleSelectDestSuggestion(s)}
                         >
                           {s.place_name}
@@ -1098,8 +1096,8 @@ const RiderDashboard: React.FC = () => {
               </div>
 
               {/* Ride Type Selection */}
-              <div className="space-y-2 pt-2">
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">Select Ride Type</p>
+              <div className="space-y-2 pt-1">
+                <p className="text-xs uppercase tracking-wider text-[#536184] font-semibold">Select Ride Type</p>
                 <div className="grid gap-2">
                   {rideOptions.map((option) => (
                     <button
@@ -1107,36 +1105,36 @@ const RiderDashboard: React.FC = () => {
                       type="button"
                       className={`rounded-xl p-3 border transition-all text-left ${
                         rideType === option.id
-                          ? "border-cyan-400 bg-cyan-500/20"
-                          : "border-white/10 bg-slate-800 hover:border-cyan-300"
+                          ? "border-[#304BFF] bg-[#EAEFFF] shadow-sm"
+                          : "border-[#E4EAF6] bg-[#F5F8FF] hover:border-[#304BFF]/50"
                       }`}
                       onClick={() => setRideType(option.id)}
                     >
                       <div className="flex justify-between items-center">
-                        <div className="text-sm font-semibold text-white">{option.name}</div>
-                        <div className="text-lg font-bold text-cyan-300">{option.display}</div>
+                        <div className="text-sm font-semibold text-[#11152F]">{option.name}</div>
+                        <div className="text-lg font-bold text-[#304BFF]">{option.display}</div>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">{option.time} away</p>
+                      <p className="text-xs text-[#536184] mt-1">{option.time} away</p>
                     </button>
                   ))}
                 </div>
               </div>
 
               {/* Payment Method */}
-              <div className="space-y-2 pt-2">
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">Payment</p>
+              <div className="space-y-1.5 pt-1">
+                <p className="text-xs uppercase tracking-wider text-[#536184] font-semibold">Payment</p>
                 <div className="relative payment-options">
-                  <div className="rounded-xl border border-white/10 bg-slate-800 p-2">
+                  <div className="rounded-xl border border-[#E4EAF6] bg-[#F5F8FF] p-2.5">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-semibold">{paymentMethod === 'online' ? 'Online' : 'Cash'}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {paymentMethod === 'online' ? 'Visa •••• 4242' : 'Pay driver directly'}
+                        <p className="text-sm font-semibold text-[#11152F]">{paymentMethod === 'online' ? 'Online' : 'Cash'}</p>
+                        <p className="text-xs text-[#536184]">
+                          {paymentMethod === 'online' ? 'Card / UPI' : 'Pay driver directly'}
                         </p>
                       </div>
                       <button
                         type="button"
-                        className="text-xs text-cyan-300 hover:text-cyan-200"
+                        className="text-xs text-[#304BFF] hover:text-[#304BFF]/80 font-semibold"
                         onClick={() => setShowPaymentOptions(!showPaymentOptions)}
                       >
                         Change
@@ -1144,32 +1142,26 @@ const RiderDashboard: React.FC = () => {
                     </div>
                   </div>
                   {showPaymentOptions && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-slate-800 border border-white/10 rounded-xl overflow-hidden z-10">
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#E4EAF6] rounded-xl overflow-hidden z-10 shadow-lg">
                       <button
                         type="button"
-                        className={`w-full p-3 text-left hover:bg-slate-700 transition-colors ${
-                          paymentMethod === 'online' ? 'bg-cyan-500/20 text-cyan-300' : 'text-white'
+                        className={`w-full p-3 text-left hover:bg-[#F5F8FF] transition-colors ${
+                          paymentMethod === 'online' ? 'bg-[#EAEFFF] text-[#304BFF]' : 'text-[#11152F]'
                         }`}
-                        onClick={() => {
-                          setPaymentMethod('online');
-                          setShowPaymentOptions(false);
-                        }}
+                        onClick={() => { setPaymentMethod('online'); setShowPaymentOptions(false); }}
                       >
                         <div className="font-semibold text-sm">Online</div>
-                        <div className="text-xs text-muted-foreground">Visa •••• 4242</div>
+                        <div className="text-xs text-[#536184]">Card / UPI</div>
                       </button>
                       <button
                         type="button"
-                        className={`w-full p-3 text-left hover:bg-slate-700 transition-colors ${
-                          paymentMethod === 'cash' ? 'bg-cyan-500/20 text-cyan-300' : 'text-white'
+                        className={`w-full p-3 text-left hover:bg-[#F5F8FF] transition-colors ${
+                          paymentMethod === 'cash' ? 'bg-[#EAEFFF] text-[#304BFF]' : 'text-[#11152F]'
                         }`}
-                        onClick={() => {
-                          setPaymentMethod('cash');
-                          setShowPaymentOptions(false);
-                        }}
+                        onClick={() => { setPaymentMethod('cash'); setShowPaymentOptions(false); }}
                       >
                         <div className="font-semibold text-sm">Cash</div>
-                        <div className="text-xs text-muted-foreground">Pay driver directly</div>
+                        <div className="text-xs text-[#536184]">Pay driver directly</div>
                       </button>
                     </div>
                   )}
@@ -1177,24 +1169,28 @@ const RiderDashboard: React.FC = () => {
               </div>
 
               {/* Est Fare/ETA */}
-              <div className="grid grid-cols-2 gap-2 pt-2">
-                <div className="rounded-xl border border-white/10 bg-slate-800 p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Est. Fare</p>
-                  <p className="text-xl font-bold text-cyan-300">₹{estFare !== null ? (estFare / 100).toFixed(2) : '--'}</p>
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className="rounded-xl border border-[#E4EAF6] bg-white p-3 text-center shadow-sm">
+                  <p className="text-xs text-[#536184]">Est. Fare</p>
+                  <p className="text-xl font-bold text-[#304BFF]">&#8377;{estFare !== null ? (estFare / 100).toFixed(2) : '--'}</p>
                 </div>
-                <div className="rounded-xl border border-white/10 bg-slate-800 p-3 text-center">
-                  <p className="text-xs text-muted-foreground">ETA</p>
-                  <p className="text-xl font-bold text-cyan-300">{estETA !== null ? `${estETA} min` : '--'}</p>
+                <div className="rounded-xl border border-[#E4EAF6] bg-white p-3 text-center shadow-sm">
+                  <p className="text-xs text-[#536184]">ETA</p>
+                  <p className="text-xl font-bold text-[#304BFF]">{estETA !== null ? `${estETA} min` : '--'}</p>
                 </div>
               </div>
 
-              <Button className="w-full h-12 font-bold text-lg btn-gradient shadow-lg shadow-cyan-500/20" onClick={handleRequestRide}>
+              <button
+                type="button"
+                className="w-full h-12 font-bold text-lg text-white bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] hover:from-[#2538e0] hover:to-[#5a6ee6] rounded-xl shadow-lg shadow-[#304BFF]/25 transition-all active:scale-[0.98]"
+                onClick={handleRequestRide}
+              >
                 Book Ride
-              </Button>
+              </button>
 
               <button
                 type="button"
-                className="w-full text-center text-xs text-muted-foreground hover:text-cyan-300 flex items-center justify-center gap-1.5 pt-1 transition-colors cursor-pointer"
+                className="w-full text-center text-xs text-[#536184] hover:text-[#304BFF] flex items-center justify-center gap-1.5 pt-1 transition-colors cursor-pointer"
                 onClick={() => setHistoryModalOpen(true)}
               >
                 <History className="w-3.5 h-3.5" /> View Previous Trips
@@ -1202,86 +1198,80 @@ const RiderDashboard: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-xl bg-emerald-500/15 text-emerald-300 px-3 py-1 text-xs font-semibold">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                ACCEPTED • Arriving in {activeBooking?.arrivalMinutes || 2} mins
+              <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-1.5 text-xs font-semibold">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                ACCEPTED &bull; Arriving in {activeBooking?.arrivalMinutes || 2} mins
               </div>
 
-              <div className="rounded-xl border border-white/10 bg-slate-800 p-3">
+              <div className="rounded-xl border border-[#E4EAF6] bg-white p-4 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-semibold">{driverInfo?.name || activeBooking?.driver?.name || 'Alex Rivera'}</p>
-                    <p className="text-xs text-muted-foreground">{driverInfo?.vehicle || activeBooking?.driver?.vehicle || 'Tesla Model 3 • KINETIC-X'}</p>
+                    <p className="text-sm font-semibold text-[#11152F]">{driverInfo?.name || activeBooking?.driver?.name || 'Driver'}</p>
+                    <p className="text-xs text-[#536184]">{driverInfo?.vehicle || activeBooking?.driver?.vehicle || 'Vehicle assigned'}</p>
                   </div>
-                  <div className="text-lg font-bold text-cyan-300">{activeBooking?.fare ? `₹${(activeBooking.fare/100).toFixed(2)}` : (acceptedFare ? `₹${(acceptedFare/100).toFixed(2)}` : '₹--')}</div>
+                  <div className="text-lg font-bold text-[#304BFF]">
+                    {activeBooking?.fare ? `&#8377;${(activeBooking.fare/100).toFixed(2)}` : (acceptedFare ? `&#8377;${(acceptedFare/100).toFixed(2)}` : '&#8377;--')}
+                  </div>
                 </div>
-                <p className="pt-2 text-xs text-muted-foreground">Driver is {driverInfo?.distance || '0.8'} miles away</p>
+                <p className="pt-2 text-xs text-[#536184]">Driver is {driverInfo?.distance || '0.8'} km away</p>
                 {(activeBooking?.fareExplanation || fareExplanation) && (
-                  <p className="text-xs text-muted-foreground mt-2 border-t border-white/5 pt-2 leading-relaxed italic">
+                  <p className="text-xs text-[#536184] mt-2 border-t border-[#E4EAF6] pt-2 leading-relaxed italic">
                     {activeBooking?.fareExplanation || fareExplanation}
                   </p>
                 )}
               </div>
 
-              {/* Ride Info */}
-              <div className="space-y-2">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-teal-500/30 flex items-center justify-center">
-                    <User className="w-5 h-5 text-teal-400" />
-                  </div>
-                  <div>
-                    <p className="font-semibold">{driverInfo?.name || activeBooking?.driver?.name || 'Driver'}</p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                      4.9
-                    </p>
-                  </div>
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-[#F5F8FF] border border-[#E4EAF6]">
+                <div className="w-10 h-10 rounded-full bg-[#EAEFFF] flex items-center justify-center">
+                  <User className="w-5 h-5 text-[#304BFF]" />
                 </div>
-                {driverInfo?.vehicle && (
-                  <p className="text-xs text-muted-foreground">{driverInfo.vehicle}</p>
-                )}
+                <div>
+                  <p className="font-semibold text-[#11152F]">{driverInfo?.name || activeBooking?.driver?.name || 'Driver'}</p>
+                  <p className="text-xs text-[#536184] flex items-center gap-1">
+                    <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+                    4.9 rating
+                  </p>
+                </div>
               </div>
 
-              {/* Route Info */}
-              <div className="space-y-3">
+              <div className="space-y-2 p-3 rounded-xl bg-[#F5F8FF] border border-[#E4EAF6]">
                 <div>
-                  <label className="text-xs uppercase tracking-wider text-muted-foreground">Pickup</label>
-                  <p className="text-sm">{activeBooking?.pickup?.address || '-'}</p>
+                  <label className="text-xs uppercase tracking-wider text-[#536184] font-semibold">Pickup</label>
+                  <p className="text-sm text-[#11152F] mt-0.5">{activeBooking?.pickup?.address || '-'}</p>
                 </div>
-                <div>
-                  <label className="text-xs uppercase tracking-wider text-muted-foreground">Destination</label>
-                  <p className="text-sm">{activeBooking?.destination?.address || '-'}</p>
+                <div className="border-t border-[#E4EAF6] pt-2">
+                  <label className="text-xs uppercase tracking-wider text-[#536184] font-semibold">Destination</label>
+                  <p className="text-sm text-[#11152F] mt-0.5">{activeBooking?.destination?.address || '-'}</p>
                 </div>
               </div>
 
               {/* Fare */}
-              <div className="glass-card p-3 text-center">
-                <p className="text-xs text-muted-foreground mb-1">Total Fare</p>
-                <p className="text-2xl font-bold text-gradient">₹{((acceptedFare ? acceptedFare/100 : ((activeBooking?.fare || 0)/100))).toFixed(2)}</p>
+              <div className="rounded-xl border border-[#E4EAF6] bg-white p-4 text-center shadow-sm">
+                <p className="text-xs text-[#536184] mb-1">Total Fare</p>
+                <p className="text-2xl font-bold text-[#304BFF]">&#8377;{((acceptedFare ? acceptedFare/100 : ((activeBooking?.fare || 0)/100))).toFixed(2)}</p>
               </div>
 
               {/* OTP */}
               {acceptedOtp && (
-                <div className="glass-card p-3">
-                  <p className="text-xs text-muted-foreground mb-2">RIDE OTP</p>
+                <div className="rounded-xl border border-[#304BFF]/30 bg-[#EAEFFF] p-4">
+                  <p className="text-xs text-[#536184] mb-2 uppercase tracking-wider font-semibold">Ride OTP &mdash; Share with driver</p>
                   <div className="flex justify-between items-center">
-                    <div className="font-mono text-xl font-bold tracking-widest">{acceptedOtp}</div>
-                    <Button size="sm" variant="outline" onClick={() => { navigator.clipboard?.writeText(String(acceptedOtp)); toast({ title: 'OTP copied' })}}>
+                    <div className="font-mono text-3xl font-bold tracking-widest text-[#304BFF]">{acceptedOtp}</div>
+                    <Button size="sm" variant="outline" className="border-[#304BFF] text-[#304BFF] hover:bg-[#EAEFFF]" onClick={() => { navigator.clipboard?.writeText(String(acceptedOtp)); toast({ title: 'OTP copied' })}}>
                       Copy
                     </Button>
                   </div>
                 </div>
               )}
 
-              {/* Actions */}
-              <div className="space-y-2 pt-4 border-t border-white/10">
-                <Button className="w-full btn-gradient h-10" onClick={()=>{ alert('Track driver'); }}>
-                  Track Driver
+              <div className="space-y-2 pt-2 border-t border-[#E4EAF6]">
+                <Button className="w-full h-10 bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] text-white hover:opacity-90" onClick={() => setAcceptedModalOpen(true)}>
+                  View Ride Details
                 </Button>
-                <Button variant="outline" className="w-full h-10" onClick={()=>{ alert('Contact: ' + (driverInfo?.phone|| 'n/a'))}}>
-                  Contact
+                <Button variant="outline" className="w-full h-10 border-[#E4EAF6] text-[#536184] hover:bg-[#F5F8FF]" onClick={() => { alert('Contact: ' + (driverInfo?.phone || 'n/a'))}}>
+                  Contact Driver
                 </Button>
-                <Button variant="ghost" className="w-full h-10 text-red-400 hover:text-red-300" onClick={cancelMyBooking}>
+                <Button variant="ghost" className="w-full h-10 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={cancelMyBooking}>
                   Cancel Ride
                 </Button>
               </div>
@@ -1289,12 +1279,12 @@ const RiderDashboard: React.FC = () => {
           )}
         </div>
 
-        {/* Right Panel - Map (70-75%) */}
+        {/* Right Panel - Map */}
         <div className="flex-1 relative">
           <Map
             ref={mapRef}
             mapboxAccessToken={MAPBOX_TOKEN}
-            mapStyle="mapbox://styles/mapbox/dark-v11"
+            mapStyle="mapbox://styles/mapbox/streets-v12"
             initialViewState={{
               longitude: currentLocation ? currentLocation[0] : 77.209,
               latitude: currentLocation ? currentLocation[1] : 28.6139,
@@ -1302,12 +1292,12 @@ const RiderDashboard: React.FC = () => {
             }}
             style={{ width: "100%", height: "100%" }}
           >
-            {currentLocation && <Marker longitude={currentLocation[0]} latitude={currentLocation[1]} color="red" />}
-            {selectedPickupCenter && <Marker longitude={selectedPickupCenter[0]} latitude={selectedPickupCenter[1]} color="green" />}
-            {selectedDestCenter && <Marker longitude={selectedDestCenter[0]} latitude={selectedDestCenter[1]} color="blue" />}
+            {currentLocation && <Marker longitude={currentLocation[0]} latitude={currentLocation[1]} color="#304BFF" />}
+            {selectedPickupCenter && <Marker longitude={selectedPickupCenter[0]} latitude={selectedPickupCenter[1]} color="#10b981" />}
+            {selectedDestCenter && <Marker longitude={selectedDestCenter[0]} latitude={selectedDestCenter[1]} color="#ef4444" />}
             {displayDriverLocation && (
               <Marker longitude={displayDriverLocation[0]} latitude={displayDriverLocation[1]}>
-                <div className="text-2xl animate-pulse">🚗</div>
+                <div className="text-2xl animate-pulse">&#128663;</div>
               </Marker>
             )}
             {routeGeoJSON && (
@@ -1317,43 +1307,40 @@ const RiderDashboard: React.FC = () => {
                   type="line"
                   source="route"
                   layout={{ "line-cap": "round", "line-join": "round" }}
-                  paint={{
-                    "line-color": "#2563eb",
-                    "line-width": 5,
-                  }}
+                  paint={{ "line-color": "#304BFF", "line-width": 5 }}
                 />
               </Source>
             )}
           </Map>
 
           {isSearching && (
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-slate-900/90 border border-cyan-500/40 backdrop-blur-md rounded-full px-5 py-2.5 shadow-2xl flex items-center gap-3 z-30 animate-pulse">
-              <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
-              <span className="text-xs font-semibold text-slate-100">Connecting with nearby drivers ({searchCountdown}s)</span>
+            <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-white/95 border border-[#304BFF]/30 backdrop-blur-md rounded-full px-5 py-2.5 shadow-lg flex items-center gap-3 z-30">
+              <div className="w-2.5 h-2.5 rounded-full bg-[#304BFF] animate-ping" />
+              <span className="text-xs font-semibold text-[#11152F]">Connecting with nearby drivers ({searchCountdown}s)</span>
             </div>
           )}
 
           {activeBooking && (
-            <div className="absolute right-8 top-12 w-96 bg-slate-900/95 border border-white/10 backdrop-blur-md rounded-2xl p-5 shadow-2xl">
+            <div className="absolute right-6 top-6 w-96 bg-white/95 border border-[#E4EAF6] backdrop-blur-md rounded-2xl p-5 shadow-xl">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Driver Found</p>
-                  <p className="text-2xl font-black">{driverInfo?.name || activeBooking?.driver?.name || 'Alex Rivera'}</p>
+                  <p className="text-sm text-[#536184]">Driver Found</p>
+                  <p className="text-2xl font-black text-[#11152F]">{driverInfo?.name || activeBooking?.driver?.name || 'Driver'}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-muted-foreground">Est. Fare</p>
-                  <p className="text-2xl font-bold text-emerald-300">{(acceptedFare !== null || activeBooking?.fare) ? `₹${((acceptedFare ?? activeBooking?.fare ?? 0) / 100).toFixed(2)}` : '--'}</p>
+                  <p className="text-xs text-[#536184]">Total Fare</p>
+                  <p className="text-2xl font-bold text-[#304BFF]">{(acceptedFare !== null || activeBooking?.fare) ? `&#8377;${((acceptedFare ?? activeBooking?.fare ?? 0) / 100).toFixed(2)}` : '--'}</p>
                 </div>
               </div>
-              <div className="border-t border-white/10 mt-4 pt-3">
-                <p className="text-sm font-semibold">{driverInfo?.vehicle || activeBooking?.driver?.vehicle || 'Tesla Model 3'}</p>
-                <p className="text-xs text-muted-foreground">{driverInfo?.distance || '0.8'} miles away</p>
+              <div className="border-t border-[#E4EAF6] mt-3 pt-3">
+                <p className="text-sm font-semibold text-[#11152F]">{driverInfo?.vehicle || activeBooking?.driver?.vehicle || 'Vehicle'}</p>
+                <p className="text-xs text-[#536184]">{driverInfo?.distance || '0.8'} km away</p>
               </div>
               <div className="grid grid-cols-2 gap-2 mt-4">
-                <Button className="h-11 text-sm btn-gradient" onClick={() => setAcceptedModalOpen(true)}>
-                  Confirm Trip
+                <Button className="h-11 text-sm bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] text-white hover:opacity-90" onClick={() => setAcceptedModalOpen(true)}>
+                  View Details
                 </Button>
-                <Button variant="outline" className="h-11 text-sm" onClick={cancelMyBooking}>
+                <Button variant="outline" className="h-11 text-sm border-red-300 text-red-500 hover:bg-red-50" onClick={cancelMyBooking}>
                   Cancel
                 </Button>
               </div>
@@ -1364,30 +1351,26 @@ const RiderDashboard: React.FC = () => {
 
       {/* No Driver Timeout Dialog */}
       <Dialog open={noDriverModalOpen} onOpenChange={setNoDriverModalOpen}>
-        <DialogContent className="bg-slate-900 text-white border border-white/10 max-w-sm p-6 rounded-2xl shadow-2xl text-center">
-          <div className="w-16 h-16 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center mx-auto mb-3">
-            <AlertCircle className="w-9 h-9 text-amber-400 animate-pulse" />
+        <DialogContent className="bg-white text-[#11152F] border border-[#E4EAF6] max-w-sm p-6 rounded-2xl shadow-xl text-center">
+          <div className="w-16 h-16 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto mb-3">
+            <AlertCircle className="w-9 h-9 text-amber-500 animate-pulse" />
           </div>
           <DialogHeader className="space-y-1 text-center">
-            <DialogTitle className="text-xl font-bold text-slate-100 text-center">No Drivers Nearby</DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground pt-1 text-center">
+            <DialogTitle className="text-xl font-bold text-[#11152F] text-center">No Drivers Nearby</DialogTitle>
+            <DialogDescription className="text-xs text-[#536184] pt-1 text-center">
               All nearby drivers are currently busy or offline. Please try booking again in a few moments.
             </DialogDescription>
           </DialogHeader>
-
           <div className="flex flex-col gap-2 pt-4">
             <Button
-              className="w-full btn-gradient h-10 font-semibold"
-              onClick={() => {
-                setNoDriverModalOpen(false);
-                handleRequestRide();
-              }}
+              className="w-full h-10 font-semibold bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] text-white hover:opacity-90"
+              onClick={() => { setNoDriverModalOpen(false); handleRequestRide(); }}
             >
               Try Again
             </Button>
             <Button
               variant="outline"
-              className="w-full border-white/10 hover:bg-white/5 h-10 text-xs"
+              className="w-full border-[#E4EAF6] hover:bg-[#F5F8FF] h-10 text-xs text-[#536184]"
               onClick={() => setNoDriverModalOpen(false)}
             >
               Modify Route
@@ -1398,35 +1381,35 @@ const RiderDashboard: React.FC = () => {
 
       {/* Accepted modal */}
       <Dialog open={acceptedModalOpen} onOpenChange={setAcceptedModalOpen}>
-        <DialogContent className="bg-slate-900 border-white/10">
+        <DialogContent className="bg-white text-[#11152F] border border-[#E4EAF6] rounded-2xl shadow-xl">
           <DialogHeader>
-            <DialogTitle>Driver Accepted! 🚗</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-[#11152F]">Driver Accepted! &#128663;</DialogTitle>
+            <DialogDescription className="text-[#536184]">
               {driverInfo?.name ? `${driverInfo.name} is coming to pick you up` : 'A driver has accepted your ride'}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <div className="mx-auto w-16 h-16 rounded-full bg-success/20 flex items-center justify-center mb-4">
-              <svg className="w-10 h-10 text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <div className="mx-auto w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center mb-4">
+              <svg className="w-10 h-10 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M20 6L9 17l-5-5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
             <div className="text-center space-y-2 mb-4">
-              <p className="text-lg font-bold">{driverInfo?.name || 'Driver'}</p>
-              <p className="text-sm text-muted-foreground flex justify-center items-center gap-1">
-                <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" /> 4.9 • {driverInfo?.vehicle}
+              <p className="text-lg font-bold text-[#11152F]">{driverInfo?.name || 'Driver'}</p>
+              <p className="text-sm text-[#536184] flex justify-center items-center gap-1">
+                <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" /> 4.9 &bull; {driverInfo?.vehicle}
               </p>
             </div>
-            {acceptedFare && <p className="text-center text-sm">Fare: <span className="font-bold">₹{(acceptedFare/100).toFixed(2)}</span></p>}
+            {acceptedFare && <p className="text-center text-sm text-[#536184]">Fare: <span className="font-bold text-[#304BFF]">&#8377;{(acceptedFare/100).toFixed(2)}</span></p>}
             {acceptedOtp && (
-              <div className="mt-4 p-3 glass-card text-center">
-                <p className="text-xs text-muted-foreground mb-2">Share OTP with driver</p>
-                <p className="font-mono text-2xl font-bold">{acceptedOtp}</p>
+              <div className="mt-4 p-4 rounded-xl bg-[#EAEFFF] border border-[#304BFF]/30 text-center">
+                <p className="text-xs text-[#536184] mb-2 uppercase tracking-wider font-semibold">Share OTP with driver</p>
+                <p className="font-mono text-3xl font-bold text-[#304BFF]">{acceptedOtp}</p>
               </div>
             )}
           </div>
           <DialogFooter>
-            <Button className="btn-gradient" onClick={() => setAcceptedModalOpen(false)}>Got it</Button>
+            <Button className="bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] text-white hover:opacity-90" onClick={() => setAcceptedModalOpen(false)}>Got it</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
