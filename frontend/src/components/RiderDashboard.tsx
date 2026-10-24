@@ -15,6 +15,25 @@ import {
   DollarSign,
   History,
   AlertCircle,
+  Home,
+  Clock,
+  CreditCard,
+  Wallet,
+  Headphones,
+  Phone,
+  MessageSquare,
+  Share2,
+  X,
+  ChevronRight,
+  Check,
+  ArrowRight,
+  ArrowLeft,
+  Shield,
+  Sparkles,
+  Search,
+  LogOut,
+  Calendar,
+  Compass,
 } from "lucide-react";
 
 import api from "@/services/api";
@@ -75,6 +94,9 @@ const RiderDashboard: React.FC = () => {
   const { toast } = useToast();
 
   // Driver search & timeout states
+  const [activeSidebarTab, setActiveSidebarTab] = useState<"book" | "rides" | "payments" | "wallet" | "profile">("book");
+  const [activeHistoryFilter, setActiveHistoryFilter] = useState<"all" | "completed" | "ongoing" | "cancelled">("all");
+  const [paymentChoice, setPaymentChoice] = useState<"upi" | "card" | "wallet" | "cash">("upi");
   const [isSearching, setIsSearching] = useState(false);
   const [searchCountdown, setSearchCountdown] = useState(60);
   const [noDriverModalOpen, setNoDriverModalOpen] = useState(false);
@@ -919,436 +941,783 @@ const RiderDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F8FF] text-[#11152F] flex flex-col">
-      {/* Top Navigation Bar */}
-      <div className="bg-white border-b border-[#E4EAF6] shadow-sm px-6 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-black text-[#304BFF] cursor-pointer" onClick={() => navigate("/")}>
-              RideFlow
-            </h1>
-            <span className="text-xs bg-[#EAEFFF] text-[#304BFF] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider">Rider</span>
+    <div className="min-h-screen bg-[#F5F8FF] text-[#11152F] flex flex-col md:flex-row h-screen overflow-hidden">
+      {/* ══════════════════════════════════════════════════════
+          SCREEN 5 & 8: LEFT SIDEBAR
+      ══════════════════════════════════════════════════════ */}
+      <aside className="w-full md:w-64 bg-white border-r border-[#E4EAF6] flex flex-col shrink-0 z-20">
+        {/* Logo */}
+        <div className="h-16 px-6 flex items-center justify-between border-b border-[#E4EAF6]">
+          <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate("/")}>
+            <div className="w-8 h-8 rounded-xl bg-[#304BFF] flex items-center justify-center text-white font-black text-sm shadow-md shadow-[#304BFF]/25">
+              R
+            </div>
+            <span className="text-xl font-black text-[#11152F] tracking-tight">
+              Ride<span className="text-[#304BFF]">Flow</span>
+            </span>
           </div>
-          <div className="flex items-center gap-2.5">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 px-3 text-xs border-[#E4EAF6] hover:bg-[#F5F8FF] text-[#536184]"
-              onClick={() => setHistoryModalOpen(true)}
-            >
-              <History className="w-4 h-4 mr-1.5 text-[#304BFF]" /> Ride History
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hover:bg-[#F5F8FF] text-[#536184] h-9 w-9"
-              onClick={() => setProfileModalOpen(true)}
-              title="Profile Settings"
-            >
-              <Settings className="w-4 h-4" />
-            </Button>
+          <span className="text-[10px] bg-[#EAEFFF] text-[#304BFF] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+            Rider
+          </span>
+        </div>
+
+        {/* Navigation Items */}
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          {[
+            { id: "home", label: "Home", icon: Home, onClick: () => navigate("/") },
+            { id: "book", label: "Book Ride", icon: Compass, onClick: () => setActiveSidebarTab("book") },
+            { id: "rides", label: "My Rides", icon: Clock, onClick: () => setActiveSidebarTab("rides") },
+            { id: "payments", label: "Payments", icon: CreditCard, onClick: () => setActiveSidebarTab("payments") },
+            { id: "wallet", label: "Wallet", icon: Wallet, onClick: () => setActiveSidebarTab("wallet") },
+            { id: "support", label: "Support", icon: Headphones, onClick: () => {
+              const el = document.getElementById("open-copilot");
+              if (el) el.click();
+              else toast({ title: "AI Assistant", description: "Use the AI chatbot at the bottom right!" });
+            }},
+            { id: "profile", label: "Profile", icon: User, onClick: () => setProfileModalOpen(true) },
+          ].map((item) => {
+            const isActive = activeSidebarTab === item.id;
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={item.onClick}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${
+                  isActive
+                    ? "bg-[#EAEFFF] text-[#304BFF] shadow-xs"
+                    : "text-[#536184] hover:bg-[#F5F8FF] hover:text-[#11152F]"
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? "text-[#304BFF]" : "text-[#536184]"}`} />
+                <span>{item.label}</span>
+                {item.id === "book" && isActive && (
+                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#304BFF]" />
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* User Card at Bottom of Sidebar */}
+        <div className="p-4 border-t border-[#E4EAF6] bg-[#F5F8FF]/50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5 min-w-0" onClick={() => setProfileModalOpen(true)}>
+              <div className="w-9 h-9 rounded-full bg-[#EAEFFF] border border-[#304BFF]/30 flex items-center justify-center text-[#304BFF] font-bold text-sm shrink-0">
+                {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : "R"}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-[#11152F] truncate">
+                  {currentUser?.name || "Rakesh Kumar"}
+                </p>
+                <p className="text-[10px] text-[#536184] truncate">
+                  {currentUser?.email || "rakesh@example.com"}
+                </p>
+              </div>
+            </div>
             <button
-              type="button"
-              className="w-9 h-9 rounded-full bg-[#EAEFFF] border border-[#304BFF]/30 flex items-center justify-center hover:bg-[#304BFF]/20 transition-all text-[#304BFF] font-bold text-sm cursor-pointer"
-              onClick={() => setProfileModalOpen(true)}
-              title="My Profile"
+              onClick={() => {
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                navigate("/");
+              }}
+              title="Sign Out"
+              className="p-1.5 rounded-lg text-[#536184] hover:text-red-500 hover:bg-red-50 transition"
             >
-              {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
-      </div>
+      </aside>
 
-      {/* Main content area */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel - Booking Form */}
-        <div className="w-80 bg-white border-r border-[#E4EAF6] p-5 overflow-y-auto shadow-sm">
-          {isSearching && !activeBooking ? (
-            <div className="space-y-5 py-2">
-              {/* Radar Searching Animation */}
-              <div className="relative flex flex-col items-center justify-center py-8 overflow-hidden rounded-2xl bg-gradient-to-b from-[#EAEFFF] to-white border border-[#E4EAF6]">
-                <div className="absolute w-36 h-36 rounded-full border-2 border-[#304BFF]/20 animate-ping opacity-75" />
-                <div className="absolute w-24 h-24 rounded-full border-2 border-[#304BFF]/30 animate-pulse" />
-                <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#304BFF] to-[#6B7FFF] flex items-center justify-center text-white shadow-xl shadow-[#304BFF]/30 z-10">
-                  <Car className="w-8 h-8 animate-bounce" />
-                </div>
-                <div className="mt-4 text-center z-10 px-3">
-                  <h3 className="text-base font-bold text-[#11152F] flex items-center justify-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[#304BFF] animate-pulse" />
-                    Looking for Drivers
-                  </h3>
-                  <p className="text-xs text-[#536184] mt-1">Matching with nearest available cars...</p>
-                </div>
-              </div>
+      {/* ══════════════════════════════════════════════════════
+          MAIN CONTENT AREA
+      ══════════════════════════════════════════════════════ */}
+      <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
 
-              {/* Countdown Timer Card */}
-              <div className="p-3.5 rounded-xl bg-[#F5F8FF] border border-[#E4EAF6] space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#536184]">Search Timeout</span>
-                  <span className="font-mono font-bold text-[#304BFF]">{searchCountdown}s</span>
-                </div>
-                <div className="w-full h-2 bg-[#E4EAF6] rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] transition-all duration-1000 ease-linear rounded-full"
-                    style={{ width: `${(searchCountdown / 60) * 100}%` }}
-                  />
-                </div>
-              </div>
+        {/* ── TAB 1: BOOK RIDE (Screen 5, 6, 7) ── */}
+        {activeSidebarTab === "book" && (
+          <>
+            {/* Left Content / Booking Controls Panel */}
+            <div className="w-full md:w-[420px] lg:w-[460px] bg-white border-r border-[#E4EAF6] flex flex-col h-full overflow-y-auto shadow-sm z-10">
 
-              {/* Route Summary Card */}
-              <div className="space-y-2.5 p-3.5 rounded-xl bg-[#F5F8FF] border border-[#E4EAF6] text-xs">
-                <div className="flex items-start gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[#536184] text-[10px] uppercase font-semibold">Pickup</span>
-                    <p className="text-[#11152F] truncate">{pickup || searchPayload?.pickup?.address || '—'}</p>
+              {/* SEARCH / WHERE TO BOX */}
+              <div className="p-5 border-b border-[#E4EAF6] space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-black text-[#11152F]">Where are you going?</h2>
+                  <div className="flex items-center gap-1.5 text-xs text-[#536184]">
+                    <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+                    Live Drivers
                   </div>
                 </div>
-                <div className="flex items-start gap-2">
-                  <div className="w-2 h-2 rounded-full bg-rose-500 mt-1 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-[#536184] text-[10px] uppercase font-semibold">Destination</span>
-                    <p className="text-[#11152F] truncate">{destination || searchPayload?.destination?.address || '—'}</p>
-                  </div>
-                </div>
-                <div className="pt-2 border-t border-[#E4EAF6]">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#536184]">Est. Fare</span>
-                    <span className="font-bold text-[#304BFF]">&#8377;{estFare ? (estFare / 100).toFixed(2) : '--'}</span>
-                  </div>
-                  {(fareExplanation || activeBooking?.fareExplanation || searchPayload?.fareExplanation) && (
-                    <p className="text-xs text-[#536184] mt-1.5 leading-relaxed italic">
-                      {fareExplanation || activeBooking?.fareExplanation || searchPayload?.fareExplanation}
-                    </p>
-                  )}
-                </div>
-              </div>
 
-              <Button
-                variant="outline"
-                className="w-full border-red-300 text-red-500 hover:text-red-600 hover:bg-red-50 h-10 text-sm font-semibold"
-                onClick={cancelSearch}
-              >
-                Cancel Search
-              </Button>
-            </div>
-          ) : !activeBooking ? (
-            <div className="space-y-5">
-              <div>
-                <h2 className="text-2xl font-black text-[#11152F]">Where to?</h2>
-                <p className="text-sm text-[#536184]">Request a ride in seconds</p>
-              </div>
-
-              {/* Pickup */}
-              <div className="space-y-1.5">
-                <label className="text-xs uppercase tracking-wider text-[#536184] font-semibold">Pickup</label>
+                {/* Pickup Field */}
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-3 w-4 h-4 text-[#304BFF]" />
-                  <Input
-                    placeholder="Current location"
-                    value={pickup}
-                    onChange={(e) => setPickup(e.target.value)}
-                    className="pl-10 bg-[#F5F8FF] border-[#E4EAF6] text-sm text-[#11152F] placeholder:text-[#536184] focus-visible:ring-[#304BFF]"
-                  />
+                  <div className="flex items-center gap-2.5 bg-[#F5F8FF] border border-[#E4EAF6] rounded-xl px-3 py-2.5 focus-within:border-[#304BFF] focus-within:ring-2 focus-within:ring-[#304BFF]/15 transition-all">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] shrink-0" />
+                    <input
+                      placeholder="Pickup location"
+                      value={pickup}
+                      onChange={(e) => {
+                        setPickup(e.target.value);
+                        mapboxSuggest(e.target.value, (suggs) => setPickupSuggestions(suggs || []));
+                      }}
+                      className="flex-1 bg-transparent text-xs text-[#11152F] placeholder:text-[#A0AABF] outline-none"
+                    />
+                    {pickup && (
+                      <button onClick={() => setPickup("")} className="text-[#A0AABF] hover:text-[#536184]">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
                   {pickupSuggestions.length > 0 && (
-                    <div className="absolute z-50 w-full mt-1 bg-white rounded-lg border border-[#E4EAF6] shadow-lg overflow-hidden max-h-40 overflow-y-auto">
-                      {pickupSuggestions.slice(0, 5).map((s) => (
+                    <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white rounded-xl border border-[#E4EAF6] shadow-xl overflow-hidden max-h-44 overflow-y-auto">
+                      {pickupSuggestions.map((s) => (
                         <button
                           key={s.id}
                           type="button"
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-[#F5F8FF] text-[#11152F] transition-colors"
-                          onClick={() => handleSelectPickupSuggestion(s)}
+                          className="w-full text-left px-3.5 py-2 text-xs hover:bg-[#F5F8FF] text-[#11152F] flex items-center gap-2 border-b border-[#F5F8FF] last:border-0"
+                          onClick={() => {
+                            setPickup(s.place_name);
+                            setSelectedPickupCenter(s.center);
+                            setPickupSuggestions([]);
+                          }}
                         >
-                          {s.place_name}
+                          <MapPin className="w-3.5 h-3.5 text-[#304BFF] shrink-0" />
+                          <span className="truncate">{s.place_name}</span>
                         </button>
                       ))}
                     </div>
                   )}
                 </div>
-              </div>
 
-              {/* Destination */}
-              <div className="space-y-1.5">
-                <label className="text-xs uppercase tracking-wider text-[#536184] font-semibold">Destination</label>
+                {/* Destination Field with Swap */}
                 <div className="relative">
-                  <Navigation className="absolute left-3 top-3 w-4 h-4 text-[#304BFF]" />
-                  <Input
-                    placeholder="Where are you going?"
-                    value={destination}
-                    onChange={(e) => setDestination(e.target.value)}
-                    className="pl-10 bg-[#F5F8FF] border-[#E4EAF6] text-sm text-[#11152F] placeholder:text-[#536184] focus-visible:ring-[#304BFF]"
-                  />
+                  <div className="flex items-center gap-2.5 bg-[#F5F8FF] border border-[#E4EAF6] rounded-xl px-3 py-2.5 focus-within:border-[#304BFF] focus-within:ring-2 focus-within:ring-[#304BFF]/15 transition-all">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#EF4444] shrink-0" />
+                    <input
+                      placeholder="Drop location"
+                      value={destination}
+                      onChange={(e) => {
+                        setDestination(e.target.value);
+                        mapboxSuggest(e.target.value, (suggs) => setDestinationSuggestions(suggs || []));
+                      }}
+                      className="flex-1 bg-transparent text-xs text-[#11152F] placeholder:text-[#A0AABF] outline-none"
+                    />
+                    {destination && (
+                      <button onClick={() => setDestination("")} className="text-[#A0AABF] hover:text-[#536184]">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
                   {destinationSuggestions.length > 0 && (
-                    <div className="absolute z-50 w-full mt-1 bg-white rounded-lg border border-[#E4EAF6] shadow-lg overflow-hidden max-h-40 overflow-y-auto">
-                      {destinationSuggestions.slice(0, 5).map((s) => (
+                    <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white rounded-xl border border-[#E4EAF6] shadow-xl overflow-hidden max-h-44 overflow-y-auto">
+                      {destinationSuggestions.map((s) => (
                         <button
                           key={s.id}
                           type="button"
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-[#F5F8FF] text-[#11152F] transition-colors"
-                          onClick={() => handleSelectDestSuggestion(s)}
+                          className="w-full text-left px-3.5 py-2 text-xs hover:bg-[#F5F8FF] text-[#11152F] flex items-center gap-2 border-b border-[#F5F8FF] last:border-0"
+                          onClick={() => {
+                            setDestination(s.place_name);
+                            setSelectedDestCenter(s.center);
+                            setDestinationSuggestions([]);
+                          }}
                         >
-                          {s.place_name}
+                          <Navigation className="w-3.5 h-3.5 text-[#EF4444] shrink-0" />
+                          <span className="truncate">{s.place_name}</span>
                         </button>
                       ))}
                     </div>
                   )}
                 </div>
-              </div>
 
-              {/* Ride Type Selection */}
-              <div className="space-y-2 pt-1">
-                <p className="text-xs uppercase tracking-wider text-[#536184] font-semibold">Select Ride Type</p>
-                <div className="grid gap-2">
-                  {rideOptions.map((option) => (
+                {/* Quick Destination Chips */}
+                <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                  {[
+                    { label: "Home", icon: "🏠" },
+                    { label: "Work", icon: "💼" },
+                    { label: "Airport", icon: "✈️" },
+                    { label: "Metro Station", icon: "🚇" },
+                  ].map((chip) => (
                     <button
-                      key={option.id}
+                      key={chip.label}
                       type="button"
-                      className={`rounded-xl p-3 border transition-all text-left ${
-                        rideType === option.id
-                          ? "border-[#304BFF] bg-[#EAEFFF] shadow-sm"
-                          : "border-[#E4EAF6] bg-[#F5F8FF] hover:border-[#304BFF]/50"
-                      }`}
-                      onClick={() => setRideType(option.id)}
+                      onClick={() => {
+                        setDestination(chip.label);
+                        mapboxSuggest(chip.label, (suggs) => {
+                          if (suggs && suggs[0]) {
+                            setSelectedDestCenter(suggs[0].center);
+                          }
+                        });
+                      }}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-[#F5F8FF] text-[#536184] border border-[#E4EAF6] hover:bg-[#EAEFFF] hover:text-[#304BFF] hover:border-[#304BFF]/30 transition"
                     >
-                      <div className="flex justify-between items-center">
-                        <div className="text-sm font-semibold text-[#11152F]">{option.name}</div>
-                        <div className="text-lg font-bold text-[#304BFF]">{option.display}</div>
-                      </div>
-                      <p className="text-xs text-[#536184] mt-1">{option.time} away</p>
+                      <span>{chip.icon}</span>
+                      <span>{chip.label}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Payment Method */}
-              <div className="space-y-1.5 pt-1">
-                <p className="text-xs uppercase tracking-wider text-[#536184] font-semibold">Payment</p>
-                <div className="relative payment-options">
-                  <div className="rounded-xl border border-[#E4EAF6] bg-[#F5F8FF] p-2.5">
+              {/* SEARCHING ACTIVE STATE */}
+              {isSearching && !activeBooking ? (
+                <div className="p-5 space-y-4">
+                  {/* Radar Searching Animation */}
+                  <div className="relative flex flex-col items-center justify-center py-8 rounded-2xl bg-gradient-to-b from-[#EAEFFF] to-white border border-[#E4EAF6] overflow-hidden">
+                    <div className="absolute w-36 h-36 rounded-full border-2 border-[#304BFF]/20 animate-ping opacity-75" />
+                    <div className="absolute w-24 h-24 rounded-full border-2 border-[#304BFF]/30 animate-pulse" />
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-[#304BFF] to-[#6B7FFF] flex items-center justify-center text-white shadow-xl shadow-[#304BFF]/30 z-10">
+                      <Car className="w-8 h-8 animate-bounce" />
+                    </div>
+                    <div className="mt-4 text-center z-10 px-3">
+                      <h3 className="text-sm font-bold text-[#11152F] flex items-center justify-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-[#304BFF] animate-pulse" />
+                        Looking for Drivers
+                      </h3>
+                      <p className="text-xs text-[#536184] mt-1">Matching with nearest available cars...</p>
+                    </div>
+                  </div>
+
+                  {/* Countdown Timer */}
+                  <div className="p-3.5 rounded-xl bg-[#F5F8FF] border border-[#E4EAF6] space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-[#536184]">Search Timeout</span>
+                      <span className="font-mono font-bold text-[#304BFF]">{searchCountdown}s</span>
+                    </div>
+                    <div className="w-full h-2 bg-[#E4EAF6] rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] transition-all duration-1000 ease-linear rounded-full"
+                        style={{ width: `${(searchCountdown / 60) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Route Summary */}
+                  <div className="p-3.5 rounded-xl bg-[#F5F8FF] border border-[#E4EAF6] text-xs space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#10B981]" />
+                      <span className="text-[#11152F] truncate font-medium">{pickup || "Pickup"}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#EF4444]" />
+                      <span className="text-[#11152F] truncate font-medium">{destination || "Destination"}</span>
+                    </div>
+                    <div className="pt-2 border-t border-[#E4EAF6] flex items-center justify-between">
+                      <span className="text-[#536184]">Estimated Fare</span>
+                      <span className="font-bold text-[#304BFF]">₹{estFare ? (estFare / 100).toFixed(2) : "--"}</span>
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    className="w-full border-red-200 text-red-500 hover:text-red-600 hover:bg-red-50 h-10 text-xs font-semibold"
+                    onClick={cancelSearch}
+                  >
+                    Cancel Search
+                  </Button>
+                </div>
+              ) : activeBooking ? (
+                /* ── SCREEN 7: LIVE RIDE TRACKING ── */
+                <div className="p-5 space-y-4">
+                  {/* Driver Arriving Status Pill */}
+                  <div className="inline-flex items-center gap-2 bg-[#EDFBF4] border border-emerald-200 text-[#16B86A] px-3.5 py-1.5 rounded-full text-xs font-bold">
+                    <span className="w-2 h-2 rounded-full bg-[#16B86A] animate-pulse" />
+                    Driver Arriving • 3 min away
+                  </div>
+
+                  {/* Driver Card */}
+                  <div className="p-4 rounded-2xl border border-[#E4EAF6] bg-white shadow-sm space-y-3">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-semibold text-[#11152F]">{paymentMethod === 'online' ? 'Online' : 'Cash'}</p>
-                        <p className="text-xs text-[#536184]">
-                          {paymentMethod === 'online' ? 'Card / UPI' : 'Pay driver directly'}
-                        </p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-[#EAEFFF] border border-[#304BFF]/30 flex items-center justify-center text-[#304BFF] font-bold text-base">
+                          {driverInfo?.name ? driverInfo.name.charAt(0) : "R"}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm text-[#11152F]">
+                            {driverInfo?.name || activeBooking?.driver?.name || "Rahul Verma"}
+                          </h4>
+                          <p className="text-xs text-[#536184] flex items-center gap-1">
+                            <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                            4.9 (3,200+ rides)
+                          </p>
+                        </div>
                       </div>
+                      <div className="text-right">
+                        <span className="text-xs font-mono font-bold bg-[#F5F8FF] border border-[#E4EAF6] px-2.5 py-1 rounded-lg text-[#11152F]">
+                          DL 0C AX 1C34
+                        </span>
+                        <p className="text-[10px] text-[#536184] mt-1">Blue Sedan</p>
+                      </div>
+                    </div>
+
+                    {/* Quick Action Buttons: Call | Chat | Share | Cancel */}
+                    <div className="grid grid-cols-4 gap-2 pt-2 border-t border-[#E4EAF6]">
                       <button
-                        type="button"
-                        className="text-xs text-[#304BFF] hover:text-[#304BFF]/80 font-semibold"
-                        onClick={() => setShowPaymentOptions(!showPaymentOptions)}
+                        onClick={() => alert("Calling driver: " + (driverInfo?.phone || "+91 98765 43210"))}
+                        className="flex flex-col items-center gap-1 p-2 rounded-xl bg-[#F5F8FF] hover:bg-[#EAEFFF] text-[#304BFF] transition text-[11px] font-semibold"
                       >
-                        Change
+                        <Phone className="w-4 h-4" />
+                        Call
+                      </button>
+                      <button
+                        onClick={() => {
+                          const el = document.getElementById("open-copilot");
+                          if (el) el.click();
+                        }}
+                        className="flex flex-col items-center gap-1 p-2 rounded-xl bg-[#F5F8FF] hover:bg-[#EAEFFF] text-[#304BFF] transition text-[11px] font-semibold"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                        Chat
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (navigator.share) {
+                            navigator.share({ title: "My RideFlow Trip", text: `I am on a RideFlow trip with Rahul Verma. Tracking: ${window.location.href}` });
+                          } else {
+                            toast({ title: "Trip Shared", description: "Trip details link copied to clipboard!" });
+                          }
+                        }}
+                        className="flex flex-col items-center gap-1 p-2 rounded-xl bg-[#F5F8FF] hover:bg-[#EAEFFF] text-[#304BFF] transition text-[11px] font-semibold"
+                      >
+                        <Share2 className="w-4 h-4" />
+                        Share
+                      </button>
+                      <button
+                        onClick={cancelMyBooking}
+                        className="flex flex-col items-center gap-1 p-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-500 transition text-[11px] font-semibold"
+                      >
+                        <X className="w-4 h-4" />
+                        Cancel
                       </button>
                     </div>
                   </div>
-                  {showPaymentOptions && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#E4EAF6] rounded-xl overflow-hidden z-10 shadow-lg">
-                      <button
-                        type="button"
-                        className={`w-full p-3 text-left hover:bg-[#F5F8FF] transition-colors ${
-                          paymentMethod === 'online' ? 'bg-[#EAEFFF] text-[#304BFF]' : 'text-[#11152F]'
-                        }`}
-                        onClick={() => { setPaymentMethod('online'); setShowPaymentOptions(false); }}
-                      >
-                        <div className="font-semibold text-sm">Online</div>
-                        <div className="text-xs text-[#536184]">Card / UPI</div>
-                      </button>
-                      <button
-                        type="button"
-                        className={`w-full p-3 text-left hover:bg-[#F5F8FF] transition-colors ${
-                          paymentMethod === 'cash' ? 'bg-[#EAEFFF] text-[#304BFF]' : 'text-[#11152F]'
-                        }`}
-                        onClick={() => { setPaymentMethod('cash'); setShowPaymentOptions(false); }}
-                      >
-                        <div className="font-semibold text-sm">Cash</div>
-                        <div className="text-xs text-[#536184]">Pay driver directly</div>
-                      </button>
+
+                  {/* Ride Details Panel */}
+                  <div className="p-4 rounded-2xl border border-[#E4EAF6] bg-[#F5F8FF] space-y-3">
+                    <h5 className="text-xs font-bold uppercase text-[#536184] tracking-wider">Ride Details</h5>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex items-start gap-2.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] mt-0.5 shrink-0" />
+                        <div>
+                          <p className="font-semibold text-[#11152F]">{activeBooking?.pickup?.address || pickup || "Connaught Place"}</p>
+                          <p className="text-[10px] text-[#536184]">Pickup • 3 min</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#EF4444] mt-0.5 shrink-0" />
+                        <div>
+                          <p className="font-semibold text-[#11152F]">{activeBooking?.destination?.address || destination || "Karol Bagh"}</p>
+                          <p className="text-[10px] text-[#536184]">Drop • 12 min</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* OTP Box */}
+                  {acceptedOtp && (
+                    <div className="p-4 rounded-2xl bg-gradient-to-r from-[#EAEFFF] to-white border border-[#304BFF]/30 text-center space-y-1.5 shadow-sm">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-[#536184]">
+                        OTP for Driver Verification
+                      </p>
+                      <div className="font-mono text-3xl font-black text-[#304BFF] tracking-[0.3em]">
+                        {acceptedOtp}
+                      </div>
+                      <p className="text-[10px] text-[#536184]">Share this code only after getting in the car</p>
                     </div>
                   )}
+
+                  <Button
+                    className="w-full h-11 bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] text-white font-bold rounded-xl shadow-md hover:opacity-90"
+                    onClick={() => setAcceptedModalOpen(true)}
+                  >
+                    View Full Details
+                  </Button>
                 </div>
-              </div>
-
-              {/* Est Fare/ETA */}
-              <div className="grid grid-cols-2 gap-2 pt-1">
-                <div className="rounded-xl border border-[#E4EAF6] bg-white p-3 text-center shadow-sm">
-                  <p className="text-xs text-[#536184]">Est. Fare</p>
-                  <p className="text-xl font-bold text-[#304BFF]">&#8377;{estFare !== null ? (estFare / 100).toFixed(2) : '--'}</p>
-                </div>
-                <div className="rounded-xl border border-[#E4EAF6] bg-white p-3 text-center shadow-sm">
-                  <p className="text-xs text-[#536184]">ETA</p>
-                  <p className="text-xl font-bold text-[#304BFF]">{estETA !== null ? `${estETA} min` : '--'}</p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                className="w-full h-12 font-bold text-lg text-white bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] hover:from-[#2538e0] hover:to-[#5a6ee6] rounded-xl shadow-lg shadow-[#304BFF]/25 transition-all active:scale-[0.98]"
-                onClick={handleRequestRide}
-              >
-                Book Ride
-              </button>
-
-              <button
-                type="button"
-                className="w-full text-center text-xs text-[#536184] hover:text-[#304BFF] flex items-center justify-center gap-1.5 pt-1 transition-colors cursor-pointer"
-                onClick={() => setHistoryModalOpen(true)}
-              >
-                <History className="w-3.5 h-3.5" /> View Previous Trips
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-1.5 text-xs font-semibold">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                ACCEPTED &bull; Arriving in {activeBooking?.arrivalMinutes || 2} mins
-              </div>
-
-              <div className="rounded-xl border border-[#E4EAF6] bg-white p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-[#11152F]">{driverInfo?.name || activeBooking?.driver?.name || 'Driver'}</p>
-                    <p className="text-xs text-[#536184]">{driverInfo?.vehicle || activeBooking?.driver?.vehicle || 'Vehicle assigned'}</p>
+              ) : (
+                /* ── SCREEN 5: REGULAR BOOKING PANEL ── */
+                <div className="p-5 space-y-4">
+                  {/* 30% OFF PROMO BANNER */}
+                  <div
+                    className="rounded-2xl p-4 text-white relative overflow-hidden shadow-md flex items-center justify-between"
+                    style={{ background: "linear-gradient(135deg, #1E1B4B 0%, #312E81 50%, #4338CA 100%)" }}
+                  >
+                    <div className="relative z-10 space-y-1 max-w-[210px]">
+                      <span className="inline-block bg-[#304BFF] text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
+                        SPECIAL
+                      </span>
+                      <h4 className="text-xl font-black tracking-tight leading-tight">30% OFF</h4>
+                      <p className="text-xs text-white/80">On your first 3 rides with code <span className="font-mono font-bold text-yellow-300">RIDEFLOW30</span></p>
+                    </div>
+                    {/* Decorative Car Illustration */}
+                    <div className="text-4xl select-none animate-pulse">
+                      🚗
+                    </div>
                   </div>
-                  <div className="text-lg font-bold text-[#304BFF]">
-                    {activeBooking?.fare ? `&#8377;${(activeBooking.fare/100).toFixed(2)}` : (acceptedFare ? `&#8377;${(acceptedFare/100).toFixed(2)}` : '&#8377;--')}
+
+                  {/* CHOOSE A RIDE SECTION */}
+                  <div className="space-y-2.5">
+                    <h3 className="text-sm font-bold text-[#11152F]">Choose a ride</h3>
+
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {[
+                        { id: "auto", name: "Auto", icon: "🛺", fare: "₹50 - 90", time: "2 min", category: "economy" },
+                        { id: "standard", name: "Sedan", icon: "🚗", fare: "₹120 - 165", time: "3 min", category: "standard" },
+                        { id: "economy", name: "SUV", icon: "🚙", fare: "₹200 - 265", time: "4 min", category: "standard" },
+                        { id: "premium", name: "Luxury", icon: "🏎️", fare: "₹450 - 660", time: "6 min", category: "premium" },
+                      ].map((v) => {
+                        const isSelected = rideType === v.id || (rideType === "standard" && v.id === "standard");
+                        return (
+                          <button
+                            key={v.id}
+                            type="button"
+                            onClick={() => setRideType(v.id as any)}
+                            className={`p-3 rounded-2xl border text-left transition-all duration-150 flex flex-col justify-between ${
+                              isSelected
+                                ? "border-[#304BFF] bg-[#EAEFFF] shadow-sm ring-2 ring-[#304BFF]/20"
+                                : "border-[#E4EAF6] bg-white hover:border-[#304BFF]/40 hover:bg-[#F5F8FF]"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-2xl">{v.icon}</span>
+                              <span className="text-[10px] font-semibold text-[#536184] bg-white/80 border border-[#E4EAF6] px-1.5 py-0.5 rounded-md">
+                                {v.time}
+                              </span>
+                            </div>
+                            <div>
+                              <p className={`text-xs font-bold ${isSelected ? "text-[#304BFF]" : "text-[#11152F]"}`}>
+                                {v.name}
+                              </p>
+                              <p className="text-[11px] font-extrabold text-[#11152F] mt-0.5">
+                                {estFare ? `₹${(estFare / 100).toFixed(0)}` : v.fare}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-                <p className="pt-2 text-xs text-[#536184]">Driver is {driverInfo?.distance || '0.8'} km away</p>
-                {(activeBooking?.fareExplanation || fareExplanation) && (
-                  <p className="text-xs text-[#536184] mt-2 border-t border-[#E4EAF6] pt-2 leading-relaxed italic">
-                    {activeBooking?.fareExplanation || fareExplanation}
-                  </p>
-                )}
-              </div>
 
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-[#F5F8FF] border border-[#E4EAF6]">
-                <div className="w-10 h-10 rounded-full bg-[#EAEFFF] flex items-center justify-center">
-                  <User className="w-5 h-5 text-[#304BFF]" />
-                </div>
-                <div>
-                  <p className="font-semibold text-[#11152F]">{driverInfo?.name || activeBooking?.driver?.name || 'Driver'}</p>
-                  <p className="text-xs text-[#536184] flex items-center gap-1">
-                    <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                    4.9 rating
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2 p-3 rounded-xl bg-[#F5F8FF] border border-[#E4EAF6]">
-                <div>
-                  <label className="text-xs uppercase tracking-wider text-[#536184] font-semibold">Pickup</label>
-                  <p className="text-sm text-[#11152F] mt-0.5">{activeBooking?.pickup?.address || '-'}</p>
-                </div>
-                <div className="border-t border-[#E4EAF6] pt-2">
-                  <label className="text-xs uppercase tracking-wider text-[#536184] font-semibold">Destination</label>
-                  <p className="text-sm text-[#11152F] mt-0.5">{activeBooking?.destination?.address || '-'}</p>
-                </div>
-              </div>
-
-              {/* Fare */}
-              <div className="rounded-xl border border-[#E4EAF6] bg-white p-4 text-center shadow-sm">
-                <p className="text-xs text-[#536184] mb-1">Total Fare</p>
-                <p className="text-2xl font-bold text-[#304BFF]">&#8377;{((acceptedFare ? acceptedFare/100 : ((activeBooking?.fare || 0)/100))).toFixed(2)}</p>
-              </div>
-
-              {/* OTP */}
-              {acceptedOtp && (
-                <div className="rounded-xl border border-[#304BFF]/30 bg-[#EAEFFF] p-4">
-                  <p className="text-xs text-[#536184] mb-2 uppercase tracking-wider font-semibold">Ride OTP &mdash; Share with driver</p>
-                  <div className="flex justify-between items-center">
-                    <div className="font-mono text-3xl font-bold tracking-widest text-[#304BFF]">{acceptedOtp}</div>
-                    <Button size="sm" variant="outline" className="border-[#304BFF] text-[#304BFF] hover:bg-[#EAEFFF]" onClick={() => { navigator.clipboard?.writeText(String(acceptedOtp)); toast({ title: 'OTP copied' })}}>
-                      Copy
-                    </Button>
+                  {/* Payment Method Selector */}
+                  <div className="p-3.5 rounded-xl border border-[#E4EAF6] bg-[#F5F8FF] flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-white border border-[#E4EAF6] flex items-center justify-center text-[#304BFF]">
+                        {paymentMethod === "online" ? <CreditCard className="w-4 h-4" /> : <DollarSign className="w-4 h-4" />}
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-[#11152F]">
+                          {paymentMethod === "online" ? "Online (UPI / Card)" : "Cash on Arrival"}
+                        </p>
+                        <p className="text-[10px] text-[#536184]">
+                          {paymentMethod === "online" ? "Fast & contactless" : "Pay driver directly"}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod(paymentMethod === "online" ? "cash" : "online")}
+                      className="text-xs font-bold text-[#304BFF] hover:underline"
+                    >
+                      Change
+                    </button>
                   </div>
+
+                  {/* Book Ride Button */}
+                  <Button
+                    type="button"
+                    onClick={handleRequestRide}
+                    className="w-full h-12 bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] text-white font-bold text-sm rounded-xl shadow-lg shadow-[#304BFF]/25 hover:opacity-95 active:scale-[0.98] transition-all"
+                  >
+                    Confirm & Book Ride
+                  </Button>
                 </div>
               )}
-
-              <div className="space-y-2 pt-2 border-t border-[#E4EAF6]">
-                <Button className="w-full h-10 bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] text-white hover:opacity-90" onClick={() => setAcceptedModalOpen(true)}>
-                  View Ride Details
-                </Button>
-                <Button variant="outline" className="w-full h-10 border-[#E4EAF6] text-[#536184] hover:bg-[#F5F8FF]" onClick={() => { alert('Contact: ' + (driverInfo?.phone || 'n/a'))}}>
-                  Contact Driver
-                </Button>
-                <Button variant="ghost" className="w-full h-10 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={cancelMyBooking}>
-                  Cancel Ride
-                </Button>
-              </div>
             </div>
-          )}
-        </div>
 
-        {/* Right Panel - Map */}
-        <div className="flex-1 relative">
-          <Map
-            ref={mapRef}
-            mapboxAccessToken={MAPBOX_TOKEN}
-            mapStyle="mapbox://styles/mapbox/streets-v12"
-            initialViewState={{
-              longitude: currentLocation ? currentLocation[0] : 77.209,
-              latitude: currentLocation ? currentLocation[1] : 28.6139,
-              zoom: 11,
-            }}
-            style={{ width: "100%", height: "100%" }}
-          >
-            {currentLocation && <Marker longitude={currentLocation[0]} latitude={currentLocation[1]} color="#304BFF" />}
-            {selectedPickupCenter && <Marker longitude={selectedPickupCenter[0]} latitude={selectedPickupCenter[1]} color="#10b981" />}
-            {selectedDestCenter && <Marker longitude={selectedDestCenter[0]} latitude={selectedDestCenter[1]} color="#ef4444" />}
-            {displayDriverLocation && (
-              <Marker longitude={displayDriverLocation[0]} latitude={displayDriverLocation[1]}>
-                <div className="text-2xl animate-pulse">&#128663;</div>
-              </Marker>
-            )}
-            {routeGeoJSON && (
-              <Source id="route" type="geojson" data={routeGeoJSON}>
-                <Layer
-                  id="route-line"
-                  type="line"
-                  source="route"
-                  layout={{ "line-cap": "round", "line-join": "round" }}
-                  paint={{ "line-color": "#304BFF", "line-width": 5 }}
-                />
-              </Source>
-            )}
-          </Map>
+            {/* Right Map Canvas (Screen 5 & 6) */}
+            <div className="flex-1 h-full relative">
+              <Map
+                ref={mapRef}
+                mapboxAccessToken={MAPBOX_TOKEN}
+                mapStyle="mapbox://styles/mapbox/streets-v12"
+                initialViewState={{
+                  longitude: currentLocation ? currentLocation[0] : 77.209,
+                  latitude: currentLocation ? currentLocation[1] : 28.6139,
+                  zoom: 12,
+                }}
+                style={{ width: "100%", height: "100%" }}
+              >
+                {/* User Current Location Marker */}
+                {currentLocation && (
+                  <Marker longitude={currentLocation[0]} latitude={currentLocation[1]} color="#304BFF" />
+                )}
+                {/* Pickup Location Marker */}
+                {selectedPickupCenter && (
+                  <Marker longitude={selectedPickupCenter[0]} latitude={selectedPickupCenter[1]} color="#10b981" />
+                )}
+                {/* Destination Location Marker */}
+                {selectedDestCenter && (
+                  <Marker longitude={selectedDestCenter[0]} latitude={selectedDestCenter[1]} color="#ef4444" />
+                )}
+                {/* Driver Live Marker */}
+                {displayDriverLocation && (
+                  <Marker longitude={displayDriverLocation[0]} latitude={displayDriverLocation[1]}>
+                    <div className="text-3xl filter drop-shadow-md animate-pulse">🚗</div>
+                  </Marker>
+                )}
+                {/* Route Polyline */}
+                {routeGeoJSON && (
+                  <Source id="route" type="geojson" data={routeGeoJSON}>
+                    <Layer
+                      id="route-line"
+                      type="line"
+                      source="route"
+                      layout={{ "line-cap": "round", "line-join": "round" }}
+                      paint={{ "line-color": "#304BFF", "line-width": 5 }}
+                    />
+                  </Source>
+                )}
+              </Map>
 
-          {isSearching && (
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-white/95 border border-[#304BFF]/30 backdrop-blur-md rounded-full px-5 py-2.5 shadow-lg flex items-center gap-3 z-30">
-              <div className="w-2.5 h-2.5 rounded-full bg-[#304BFF] animate-ping" />
-              <span className="text-xs font-semibold text-[#11152F]">Connecting with nearby drivers ({searchCountdown}s)</span>
+              {/* Floating Route Pill on Top of Map */}
+              {(routeDistanceKm > 0 || estETA) && (
+                <div className="absolute top-5 left-5 bg-white/95 backdrop-blur-md border border-[#E4EAF6] rounded-full px-4 py-2 shadow-lg flex items-center gap-3 z-30">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#304BFF] animate-ping" />
+                  <span className="text-xs font-bold text-[#11152F]">
+                    {routeDistanceKm > 0 ? `${routeDistanceKm.toFixed(1)} km` : "Route Found"} • {estETA ? `${estETA} min away` : "Quick Match"}
+                  </span>
+                </div>
+              )}
             </div>
-          )}
+          </>
+        )}
 
-          {activeBooking && (
-            <div className="absolute right-6 top-6 w-96 bg-white/95 border border-[#E4EAF6] backdrop-blur-md rounded-2xl p-5 shadow-xl">
+        {/* ── TAB 2: SCREEN 8: RIDER - MY RIDES & ANALYTICS ── */}
+        {activeSidebarTab === "rides" && (
+          <div className="flex-1 flex flex-col lg:flex-row h-full overflow-hidden bg-[#F5F8FF]">
+            {/* Left side: My Rides list */}
+            <div className="flex-1 p-6 overflow-y-auto space-y-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-[#536184]">Driver Found</p>
-                  <p className="text-2xl font-black text-[#11152F]">{driverInfo?.name || activeBooking?.driver?.name || 'Driver'}</p>
+                  <h2 className="text-2xl font-black text-[#11152F]">My Rides</h2>
+                  <p className="text-xs text-[#536184] mt-0.5">Manage and track your travel history</p>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs text-[#536184]">Total Fare</p>
-                  <p className="text-2xl font-bold text-[#304BFF]">{(acceptedFare !== null || activeBooking?.fare) ? `&#8377;${((acceptedFare ?? activeBooking?.fare ?? 0) / 100).toFixed(2)}` : '--'}</p>
-                </div>
-              </div>
-              <div className="border-t border-[#E4EAF6] mt-3 pt-3">
-                <p className="text-sm font-semibold text-[#11152F]">{driverInfo?.vehicle || activeBooking?.driver?.vehicle || 'Vehicle'}</p>
-                <p className="text-xs text-[#536184]">{driverInfo?.distance || '0.8'} km away</p>
-              </div>
-              <div className="grid grid-cols-2 gap-2 mt-4">
-                <Button className="h-11 text-sm bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] text-white hover:opacity-90" onClick={() => setAcceptedModalOpen(true)}>
-                  View Details
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-[#E4EAF6] text-[#536184] hover:bg-white text-xs"
+                  onClick={() => setHistoryModalOpen(true)}
+                >
+                  <History className="w-3.5 h-3.5 mr-1 text-[#304BFF]" /> All Trips
                 </Button>
-                <Button variant="outline" className="h-11 text-sm border-red-300 text-red-500 hover:bg-red-50" onClick={cancelMyBooking}>
-                  Cancel
-                </Button>
+              </div>
+
+              {/* Filter Tabs */}
+              <div className="flex items-center gap-2 p-1 bg-white border border-[#E4EAF6] rounded-2xl w-fit">
+                {(["all", "completed", "ongoing", "cancelled"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveHistoryFilter(tab)}
+                    className={`px-4 py-1.5 rounded-xl text-xs font-bold capitalize transition-all ${
+                      activeHistoryFilter === tab
+                        ? "bg-[#304BFF] text-white shadow-xs"
+                        : "text-[#536184] hover:text-[#11152F]"
+                    }`}
+                  >
+                    {tab === "all" ? "All Rides" : tab}
+                  </button>
+                ))}
+              </div>
+
+              {/* Ride Cards (Exact as Screen 8 in Reference) */}
+              <div className="space-y-3">
+                {[
+                  { id: "1", from: "Connaught Place", to: "Karol Bagh", fare: "₹150", date: "14 May 2025, 4:32 PM", status: "completed" },
+                  { id: "2", from: "India Gate", to: "Lajpat Nagar", fare: "₹220", date: "10 May 2025, 1:15 PM", status: "completed" },
+                  { id: "3", from: "Airport T3", to: "Connaught Place", fare: "₹450", date: "8 May 2025, 8:45 AM", status: "completed" },
+                  { id: "4", from: "Karol Bagh", to: "Rajiv Chowk", fare: "₹80", date: "5 May 2025, 6:00 PM", status: "cancelled" },
+                ]
+                  .filter((r) => activeHistoryFilter === "all" || r.status === activeHistoryFilter)
+                  .map((ride) => (
+                    <div
+                      key={ride.id}
+                      className="p-4 bg-white rounded-2xl border border-[#E4EAF6] shadow-xs flex items-center justify-between hover:border-[#304BFF]/40 transition"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 font-bold text-sm text-[#11152F]">
+                          <span>{ride.from}</span>
+                          <ArrowRight className="w-3.5 h-3.5 text-[#536184]" />
+                          <span>{ride.to}</span>
+                        </div>
+                        <p className="text-[11px] text-[#536184]">{ride.date}</p>
+                      </div>
+
+                      <div className="text-right space-y-1">
+                        <p className="font-black text-sm text-[#11152F]">{ride.fare}</p>
+                        <span
+                          className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold capitalize ${
+                            ride.status === "completed"
+                              ? "bg-[#EDFBF4] text-[#16B86A]"
+                              : "bg-red-50 text-red-500"
+                          }`}
+                        >
+                          {ride.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
               </div>
             </div>
-          )}
-        </div>
-      </div>
 
+            {/* Right side: Ride Analytics (Screen 8 in Reference) */}
+            <div className="w-full lg:w-[360px] bg-white border-l border-[#E4EAF6] p-6 space-y-6 overflow-y-auto">
+              <div className="flex items-center justify-between">
+                <h3 className="font-black text-base text-[#11152F]">Ride Analytics</h3>
+                <span className="text-xs text-[#536184] font-semibold bg-[#F5F8FF] border border-[#E4EAF6] px-2.5 py-1 rounded-lg">
+                  Monthly ▼
+                </span>
+              </div>
+
+              {/* Monthly Bar Chart Mock */}
+              <div className="space-y-2">
+                <div className="h-32 flex items-end gap-2 pt-4 px-2">
+                  {[40, 65, 30, 85, 50, 95].map((h, i) => (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
+                      <div
+                        className="w-full rounded-t-lg bg-gradient-to-t from-[#304BFF] to-[#6B7FFF] opacity-80 hover:opacity-100 transition"
+                        style={{ height: `${h}%` }}
+                      />
+                      <span className="text-[9px] text-[#536184]">
+                        {["Jan", "Feb", "Mar", "Apr", "May", "Jun"][i]}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 4 Stats Cards */}
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <div className="p-3.5 rounded-2xl bg-[#F5F8FF] border border-[#E4EAF6]">
+                  <p className="text-2xl font-black text-[#11152F]">12</p>
+                  <p className="text-[11px] text-[#536184] font-medium mt-0.5">Total Rides</p>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-[#F5F8FF] border border-[#E4EAF6]">
+                  <p className="text-2xl font-black text-[#304BFF]">₹12.5K</p>
+                  <p className="text-[11px] text-[#536184] font-medium mt-0.5">Total Spent</p>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-[#F5F8FF] border border-[#E4EAF6]">
+                  <p className="text-2xl font-black text-[#11152F]">4.8 ★</p>
+                  <p className="text-[11px] text-[#536184] font-medium mt-0.5">Avg Rating</p>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-[#F5F8FF] border border-[#E4EAF6]">
+                  <p className="text-2xl font-black text-[#16B86A]">98%</p>
+                  <p className="text-[11px] text-[#536184] font-medium mt-0.5">Completion Rate</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB 3: SCREEN 12: PAYMENT OPTIONS ── */}
+        {activeSidebarTab === "payments" && (
+          <div className="flex-1 p-8 flex items-center justify-center bg-[#F5F8FF]">
+            <div className="w-full max-w-md bg-white rounded-3xl border border-[#E4EAF6] shadow-xl p-6 space-y-6">
+              <div className="flex items-center justify-between border-b border-[#E4EAF6] pb-4">
+                <div>
+                  <h3 className="text-lg font-black text-[#11152F]">Choose Payment Method</h3>
+                  <p className="text-xs text-[#536184] mt-0.5">Select your preferred transaction option</p>
+                </div>
+                <CreditCard className="w-5 h-5 text-[#304BFF]" />
+              </div>
+
+              <div className="space-y-3">
+                {[
+                  { id: "upi", title: "UPI", desc: "Pay using any UPI App (GPay, PhonePe, Paytm)", icon: "⚡" },
+                  { id: "card", title: "Credit / Debit Card", desc: "Visa, Mastercard, RuPay cards accepted", icon: "💳" },
+                  { id: "wallet", title: "RideFlow Wallet", desc: "Available Balance: ₹100", icon: "👛" },
+                  { id: "cash", title: "Cash", desc: "Pay cash directly to the driver on arrival", icon: "💵" },
+                ].map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => setPaymentChoice(m.id as any)}
+                    className={`w-full p-4 rounded-2xl border text-left flex items-center justify-between transition-all ${
+                      paymentChoice === m.id
+                        ? "border-[#304BFF] bg-[#EAEFFF] shadow-xs"
+                        : "border-[#E4EAF6] bg-white hover:bg-[#F5F8FF]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{m.icon}</span>
+                      <div>
+                        <p className="text-xs font-bold text-[#11152F]">{m.title}</p>
+                        <p className="text-[10px] text-[#536184] mt-0.5">{m.desc}</p>
+                      </div>
+                    </div>
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                      paymentChoice === m.id ? "border-[#304BFF] bg-[#304BFF]" : "border-[#A0AABF]"
+                    }`}>
+                      {paymentChoice === m.id && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <Button
+                className="w-full h-12 bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] text-white font-bold rounded-xl shadow-md hover:opacity-95"
+                onClick={() => {
+                  toast({ title: "Payment Method Updated", description: `Default method set to ${paymentChoice.toUpperCase()}` });
+                  setActiveSidebarTab("book");
+                }}
+              >
+                Save Payment Method
+              </Button>
+
+              <p className="text-[10px] text-center text-[#536184] flex items-center justify-center gap-1.5">
+                <Shield className="w-3.5 h-3.5 text-[#16B86A]" /> 100% Secure & Encrypted Payments
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB 4: WALLET ── */}
+        {activeSidebarTab === "wallet" && (
+          <div className="flex-1 p-8 flex items-center justify-center bg-[#F5F8FF]">
+            <div className="w-full max-w-md bg-white rounded-3xl border border-[#E4EAF6] shadow-xl p-6 space-y-6 text-center">
+              <div className="w-16 h-16 rounded-3xl bg-[#EAEFFF] border border-[#304BFF]/30 flex items-center justify-center mx-auto text-[#304BFF]">
+                <Wallet className="w-8 h-8" />
+              </div>
+              <div>
+                <p className="text-xs text-[#536184] font-medium uppercase tracking-wider">RideFlow Wallet</p>
+                <h3 className="text-4xl font-black text-[#11152F] mt-1">₹100.00</h3>
+                <p className="text-xs text-[#16B86A] mt-1">✓ Active & Ready to Use</p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                {["+ ₹200", "+ ₹500", "+ ₹1,000"].map((amt) => (
+                  <button
+                    key={amt}
+                    onClick={() => toast({ title: "Wallet Top-up", description: `${amt} added to wallet balance.` })}
+                    className="py-2.5 rounded-xl border border-[#E4EAF6] hover:border-[#304BFF] hover:bg-[#EAEFFF] text-xs font-bold text-[#11152F] transition"
+                  >
+                    {amt}
+                  </button>
+                ))}
+              </div>
+
+              <Button
+                className="w-full h-11 bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] text-white font-bold rounded-xl shadow-md"
+                onClick={() => setActiveSidebarTab("book")}
+              >
+                Back to Booking
+              </Button>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* ══════════════════════════════════════════════════════
+          MODALS & OVERLAYS
+      ══════════════════════════════════════════════════════ */}
       {/* No Driver Timeout Dialog */}
       <Dialog open={noDriverModalOpen} onOpenChange={setNoDriverModalOpen}>
         <DialogContent className="bg-white text-[#11152F] border border-[#E4EAF6] max-w-sm p-6 rounded-2xl shadow-xl text-center">
@@ -1379,42 +1748,49 @@ const RiderDashboard: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Accepted modal */}
+      {/* Driver Accepted Modal */}
       <Dialog open={acceptedModalOpen} onOpenChange={setAcceptedModalOpen}>
         <DialogContent className="bg-white text-[#11152F] border border-[#E4EAF6] rounded-2xl shadow-xl">
           <DialogHeader>
-            <DialogTitle className="text-[#11152F]">Driver Accepted! &#128663;</DialogTitle>
+            <DialogTitle className="text-[#11152F]">Driver Accepted! 🚗</DialogTitle>
             <DialogDescription className="text-[#536184]">
-              {driverInfo?.name ? `${driverInfo.name} is coming to pick you up` : 'A driver has accepted your ride'}
+              {driverInfo?.name ? `${driverInfo.name} is coming to pick you up` : "A driver has accepted your ride"}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <div className="mx-auto w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center mb-4">
-              <svg className="w-10 h-10 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M20 6L9 17l-5-5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <Check className="w-8 h-8 text-emerald-500" />
             </div>
             <div className="text-center space-y-2 mb-4">
-              <p className="text-lg font-bold text-[#11152F]">{driverInfo?.name || 'Driver'}</p>
+              <p className="text-lg font-bold text-[#11152F]">{driverInfo?.name || "Rahul Verma"}</p>
               <p className="text-sm text-[#536184] flex justify-center items-center gap-1">
-                <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" /> 4.9 &bull; {driverInfo?.vehicle}
+                <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" /> 4.9 • {driverInfo?.vehicle || "Blue Sedan"}
               </p>
             </div>
-            {acceptedFare && <p className="text-center text-sm text-[#536184]">Fare: <span className="font-bold text-[#304BFF]">&#8377;{(acceptedFare/100).toFixed(2)}</span></p>}
+            {acceptedFare && (
+              <p className="text-center text-sm text-[#536184]">
+                Fare: <span className="font-bold text-[#304BFF]">₹{(acceptedFare / 100).toFixed(2)}</span>
+              </p>
+            )}
             {acceptedOtp && (
               <div className="mt-4 p-4 rounded-xl bg-[#EAEFFF] border border-[#304BFF]/30 text-center">
                 <p className="text-xs text-[#536184] mb-2 uppercase tracking-wider font-semibold">Share OTP with driver</p>
-                <p className="font-mono text-3xl font-bold text-[#304BFF]">{acceptedOtp}</p>
+                <p className="font-mono text-3xl font-bold text-[#304BFF] tracking-widest">{acceptedOtp}</p>
               </div>
             )}
           </div>
           <DialogFooter>
-            <Button className="bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] text-white hover:opacity-90" onClick={() => setAcceptedModalOpen(false)}>Got it</Button>
+            <Button
+              className="bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] text-white hover:opacity-90 w-full"
+              onClick={() => setAcceptedModalOpen(false)}
+            >
+              Got it
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Profile Modal */}
+      {/* Profile Modal (Screen 13) */}
       <ProfileModal
         open={profileModalOpen}
         onOpenChange={setProfileModalOpen}
@@ -1429,7 +1805,7 @@ const RiderDashboard: React.FC = () => {
         userRole="rider"
       />
 
-      {/* AI Support Copilot */}
+      {/* AI Support Copilot (Screen 11) */}
       <CopilotChat />
     </div>
   );

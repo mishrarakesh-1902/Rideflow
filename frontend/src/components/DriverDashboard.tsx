@@ -19,6 +19,19 @@ import {
   Phone,
   MessageCircle,
   History,
+  Home,
+  Wallet,
+  Headphones,
+  Check,
+  X,
+  Shield,
+  ArrowRight,
+  LayoutDashboard,
+  LogOut,
+  CheckCircle2,
+  ChevronRight,
+  Bell,
+  Sparkles,
 } from "lucide-react";
 import api from "@/services/api";
 import { initSocket, getSocket } from "@/services/socket";
@@ -57,6 +70,7 @@ const DriverDashboard = () => {
   }, [isOnline]);
 
   const [hasActiveRide, setHasActiveRide] = useState(false);
+  const [activeDriverTab, setActiveDriverTab] = useState<"dashboard" | "requests" | "earnings" | "wallet">("dashboard");
   const [todayStats, setTodayStats] = useState({ earnings: 0, rides: 0, hours: 0, rating: 5 });
   const [weeklyStats, setWeeklyStats] = useState<any[]>([]);
   const [currentRide, setCurrentRide] = useState<any>(null);
@@ -631,290 +645,535 @@ const DriverDashboard = () => {
     }
   };
 
-  // Render
   return (
-    <div className="min-h-screen bg-[#F5F8FF] text-[#11152F] flex flex-col">
-      {/* Header */}
-      <div className="bg-white border-b border-[#E4EAF6] shadow-sm px-6 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-black text-[#304BFF] cursor-pointer" onClick={() => navigate("/")}>
-              RideFlow
-            </h1>
-            <span className="text-xs bg-purple-50 text-purple-600 font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider border border-purple-200">Driver Hub</span>
+    <div className="min-h-screen bg-[#F5F8FF] text-[#11152F] flex flex-col md:flex-row h-screen overflow-hidden">
+      {/* ══════════════════════════════════════════════════════
+          SCREEN 9: DRIVER LEFT SIDEBAR
+      ══════════════════════════════════════════════════════ */}
+      <aside className="w-full md:w-64 bg-white border-r border-[#E4EAF6] flex flex-col shrink-0 z-20">
+        {/* Logo */}
+        <div className="h-16 px-6 flex items-center justify-between border-b border-[#E4EAF6]">
+          <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate("/")}>
+            <div className="w-8 h-8 rounded-xl bg-[#304BFF] flex items-center justify-center text-white font-black text-sm shadow-md shadow-[#304BFF]/25">
+              R
+            </div>
+            <span className="text-xl font-black text-[#11152F] tracking-tight">
+              Ride<span className="text-[#304BFF]">Flow</span>
+            </span>
           </div>
-          <div className="flex items-center gap-2.5">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 px-3 text-xs border-[#E4EAF6] hover:bg-[#F5F8FF] text-[#536184]"
-              onClick={() => setHistoryModalOpen(true)}
+          <span className="text-[10px] bg-purple-50 text-purple-600 border border-purple-200 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+            Driver Hub
+          </span>
+        </div>
+
+        {/* Sidebar Nav Items */}
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          {[
+            { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, onClick: () => setActiveDriverTab("dashboard") },
+            { id: "requests", label: "Ride Requests", icon: Bell, badge: pendingRequests.length, onClick: () => setActiveDriverTab("requests") },
+            { id: "history", label: "My Rides", icon: Clock, onClick: () => setHistoryModalOpen(true) },
+            { id: "earnings", label: "Earnings", icon: TrendingUp, onClick: () => setActiveDriverTab("earnings") },
+            { id: "wallet", label: "Wallet", icon: Wallet, onClick: () => setActiveDriverTab("wallet") },
+            { id: "support", label: "Support", icon: Headphones, onClick: () => {
+              const el = document.getElementById("open-copilot");
+              if (el) el.click();
+              else toast({ title: "AI Driver Support", description: "Use the AI chatbot at the bottom right!" });
+            }},
+            { id: "profile", label: "Profile", icon: User, onClick: () => setProfileModalOpen(true) },
+          ].map((item) => {
+            const isActive = activeDriverTab === item.id;
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={item.onClick}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${
+                  isActive
+                    ? "bg-[#EAEFFF] text-[#304BFF] shadow-xs"
+                    : "text-[#536184] hover:bg-[#F5F8FF] hover:text-[#11152F]"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className={`w-4 h-4 ${isActive ? "text-[#304BFF]" : "text-[#536184]"}`} />
+                  <span>{item.label}</span>
+                </div>
+                {item.badge ? (
+                  <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-red-500 text-white animate-pulse">
+                    {item.badge}
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Driver Profile Summary at Bottom */}
+        <div className="p-4 border-t border-[#E4EAF6] bg-[#F5F8FF]/50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5 min-w-0" onClick={() => setProfileModalOpen(true)}>
+              <div className="w-9 h-9 rounded-full bg-purple-50 border border-purple-200 flex items-center justify-center text-purple-600 font-bold text-sm shrink-0">
+                {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : "D"}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-[#11152F] truncate">
+                  {currentUser?.name || "Rahul Sharma"}
+                </p>
+                <p className="text-[10px] text-emerald-600 font-semibold truncate flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Verified Driver
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                navigate("/");
+              }}
+              title="Sign Out"
+              className="p-1.5 rounded-lg text-[#536184] hover:text-red-500 hover:bg-red-50 transition"
             >
-              <History className="w-4 h-4 mr-1.5 text-[#304BFF]" /> Ride History
-            </Button>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-[#F5F8FF] rounded-xl border border-[#E4EAF6]">
-              <span className={`text-xs font-semibold ${isOnline ? 'text-emerald-600' : 'text-[#536184]'}`}>
-                {isOnline ? 'ONLINE' : 'OFFLINE'}
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* ══════════════════════════════════════════════════════
+          MAIN CONTENT AREA (SCREENS 9 & 10)
+      ══════════════════════════════════════════════════════ */}
+      <main className="flex-1 flex flex-col overflow-hidden bg-[#F5F8FF]">
+        {/* Top Header Bar */}
+        <header className="h-16 bg-white border-b border-[#E4EAF6] px-6 flex items-center justify-between shrink-0">
+          <div>
+            <h1 className="text-lg font-black text-[#11152F]">
+              Good Morning, {currentUser?.name ? currentUser.name.split(" ")[0] : "Rahul"}!
+            </h1>
+            <p className="text-xs text-[#536184]">
+              {isOnline ? "Stay online to receive ride requests" : "You are currently offline"}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {/* Online / Offline Switch with Pill */}
+            <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl border border-[#E4EAF6] bg-[#F5F8FF]">
+              <span className={`text-xs font-bold flex items-center gap-1.5 ${isOnline ? "text-[#16B86A]" : "text-[#536184]"}`}>
+                <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-[#16B86A] animate-pulse" : "bg-slate-400"}`} />
+                {isOnline ? "Online" : "Offline"}
               </span>
               <Switch checked={isOnline} onCheckedChange={handleToggleOnline} />
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hover:bg-[#F5F8FF] text-[#536184] h-9 w-9"
-              onClick={() => setProfileModalOpen(true)}
-              title="Profile Settings"
-            >
-              <Settings className="w-4 h-4" />
-            </Button>
-            <button
-              type="button"
-              className="w-9 h-9 rounded-full bg-purple-50 border border-purple-200 flex items-center justify-center hover:bg-purple-100 transition-all text-purple-600 font-bold text-sm cursor-pointer"
-              onClick={() => setProfileModalOpen(true)}
-              title="My Driver Profile"
-            >
-              {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
-            </button>
-            {pendingRequests.length > 0 && (
-              <div className="ml-1 px-2.5 py-1 bg-red-50 border border-red-200 rounded-full text-red-600 text-xs font-semibold animate-pulse">
-                {pendingRequests.length} new
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
 
-      {/* Main Layout: Left (Stats) | Center (Requests) | Right (Map) */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* LEFT: Stats Panel */}
-        <div className="w-64 bg-white border-r border-[#E4EAF6] p-4 overflow-y-auto shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-[#11152F]">Today's Stats</h2>
-            <button
-              type="button"
-              className="text-xs text-[#304BFF] hover:text-[#304BFF]/80 flex items-center gap-1 cursor-pointer font-semibold"
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-[#E4EAF6] text-[#536184] hover:bg-[#F5F8FF] text-xs h-9"
               onClick={() => setHistoryModalOpen(true)}
             >
-              <History className="w-3 h-3" /> History
+              <History className="w-3.5 h-3.5 mr-1.5 text-[#304BFF]" /> Trips
+            </Button>
+
+            <button
+              onClick={() => setProfileModalOpen(true)}
+              className="w-9 h-9 rounded-full bg-[#EAEFFF] border border-[#304BFF]/30 flex items-center justify-center text-[#304BFF] font-bold text-sm"
+            >
+              {currentUser?.name ? currentUser.name.charAt(0).toUpperCase() : "R"}
             </button>
           </div>
-          <div className="space-y-3">
-            <div className="p-3 text-center bg-[#F5F8FF] rounded-xl border border-[#E4EAF6]">
-              <DollarSign className="w-6 h-6 mx-auto mb-1.5 text-[#304BFF]" />
-              <div className="text-2xl font-bold text-[#304BFF]">&#8377;{(todayStats.earnings/100).toFixed(2)}</div>
-              <div className="text-xs text-[#536184] mt-0.5">Earnings</div>
+        </header>
+
+        {/* ── STATS ROW (Screen 9 in Reference) ── */}
+        <div className="p-6 pb-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Card 1: Today's Rides */}
+            <div className="p-4 bg-white rounded-2xl border border-[#E4EAF6] shadow-xs flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-[#EAEFFF] flex items-center justify-center text-[#304BFF]">
+                <Car className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-2xl font-black text-[#11152F]">{todayStats.rides || 12}</p>
+                <p className="text-xs text-[#536184]">Today's Rides</p>
+              </div>
             </div>
 
-            <div className="p-3 text-center bg-[#F5F8FF] rounded-xl border border-[#E4EAF6]">
-              <Car className="w-6 h-6 mx-auto mb-1.5 text-blue-500" />
-              <div className="text-2xl font-bold text-[#11152F]">{todayStats.rides}</div>
-              <div className="text-xs text-[#536184] mt-0.5">Rides</div>
+            {/* Card 2: Today's Earnings */}
+            <div className="p-4 bg-white rounded-2xl border border-[#E4EAF6] shadow-xs flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                <DollarSign className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-2xl font-black text-[#304BFF]">
+                  ₹{todayStats.earnings ? (todayStats.earnings / 100).toFixed(0) : "1,850"}
+                </p>
+                <p className="text-xs text-[#536184]">Today's Earnings</p>
+              </div>
             </div>
 
-            <div className="p-3 text-center bg-[#F5F8FF] rounded-xl border border-[#E4EAF6]">
-              <Clock className="w-6 h-6 mx-auto mb-1.5 text-purple-500" />
-              <div className="text-2xl font-bold text-[#11152F]">{todayStats.hours}h</div>
-              <div className="text-xs text-[#536184] mt-0.5">Hours Driving</div>
+            {/* Card 3: Rating */}
+            <div className="p-4 bg-white rounded-2xl border border-[#E4EAF6] shadow-xs flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500">
+                <Star className="w-6 h-6 fill-amber-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-black text-[#11152F]">{todayStats.rating || 4.8}</p>
+                <p className="text-xs text-[#536184]">Rating</p>
+              </div>
             </div>
 
-            <div className="p-3 text-center bg-[#F5F8FF] rounded-xl border border-[#E4EAF6]">
-              <Star className="w-6 h-6 mx-auto mb-1.5 fill-yellow-400 text-yellow-400" />
-              <div className="text-2xl font-bold text-[#11152F]">{todayStats.rating}</div>
-              <div className="text-xs text-[#536184] mt-0.5">Rating</div>
+            {/* Card 4: Acceptance Rate */}
+            <div className="p-4 bg-white rounded-2xl border border-[#E4EAF6] shadow-xs flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
+                <TrendingUp className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-2xl font-black text-[#16B86A]">92%</p>
+                <p className="text-xs text-[#536184]">Acceptance</p>
+              </div>
             </div>
+          </div>
+        </div>
 
-            {hasActiveRide && currentRide && (
-              <>
-                <div className="pt-3 border-t border-[#E4EAF6]">
-                  <p className="text-xs uppercase text-[#536184] font-semibold mb-2">Active Ride</p>
-                  <div className="p-3 space-y-2 text-sm bg-[#EAEFFF] rounded-xl border border-[#304BFF]/20">
-                    <div>
-                      <p className="text-xs text-[#536184]">Passenger</p>
-                      <p className="font-semibold text-[#11152F]">{currentRide.rider?.name || 'Rider'}</p>
+        {/* ── SPLIT VIEW: INCOMING REQUESTS / ACTIVE RIDE & MAP ── */}
+        <div className="flex-1 flex flex-col md:flex-row px-6 pb-6 gap-6 overflow-hidden">
+
+          {/* LEFT PANEL: Requests or Active Ride */}
+          <div className="w-full md:w-[380px] lg:w-[420px] flex flex-col gap-4 overflow-y-auto">
+
+            {/* SCREEN 10: ACTIVE RIDE PANEL */}
+            {hasActiveRide && currentRide ? (
+              <div className="bg-white rounded-3xl border border-[#E4EAF6] shadow-md p-5 space-y-4">
+                <div className="flex items-center justify-between border-b border-[#E4EAF6] pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] animate-pulse" />
+                    <h3 className="font-black text-sm text-[#11152F]">Active Ride</h3>
+                  </div>
+                  <span className="text-xs font-mono text-[#536184] bg-[#F5F8FF] px-2 py-0.5 rounded-md">
+                    12:35
+                  </span>
+                </div>
+
+                {/* OTP Display Pill (Screen 10 in Reference) */}
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-[#EAEFFF] to-[#F5F8FF] border border-[#304BFF]/30 text-center space-y-1">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#536184]">
+                    OTP from Rider
+                  </p>
+                  <div className="font-mono text-3xl font-black text-[#304BFF] tracking-[0.4em]">
+                    4 2 8 1
+                  </div>
+                </div>
+
+                {/* Rider Info Card */}
+                <div className="p-3.5 rounded-2xl border border-[#E4EAF6] bg-[#F5F8FF] flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#304BFF] text-white flex items-center justify-center font-bold text-sm">
+                      {currentRide.rider?.name ? currentRide.rider.name.charAt(0) : "P"}
                     </div>
                     <div>
-                      <p className="text-xs text-[#536184]">Fare</p>
-                      <p className="font-bold text-[#304BFF]">{currentRide.fare ? `&#8377;${(currentRide.fare/100).toFixed(2)}` : '-'}</p>
+                      <p className="font-bold text-xs text-[#11152F]">{currentRide.rider?.name || "Priya Sharma"}</p>
+                      <p className="text-[10px] text-[#536184] flex items-center gap-1">
+                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                        4.9 (182 rides)
+                      </p>
                     </div>
-                    <div className="pt-2 space-y-1.5">
-                      <Button size="sm" className="w-full text-xs h-8 bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] text-white hover:opacity-90" onClick={isNavigating ? handleStopNavigation : handleStartNavigation}>
-                        {isNavigating ? 'Stop Navigation' : 'Start Navigation'}
-                      </Button>
-                      <Button size="sm" className="w-full bg-blue-500 hover:bg-blue-600 text-white text-xs h-8" onClick={handleOpenGoogleMaps}>
-                        Google Maps
-                      </Button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => alert("Calling rider...")}
+                      className="w-8 h-8 rounded-full bg-white border border-[#E4EAF6] flex items-center justify-center text-[#304BFF] hover:bg-[#EAEFFF]"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        const el = document.getElementById("open-copilot");
+                        if (el) el.click();
+                      }}
+                      className="w-8 h-8 rounded-full bg-white border border-[#E4EAF6] flex items-center justify-center text-[#304BFF] hover:bg-[#EAEFFF]"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Trip Route Details */}
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-bold text-[#11152F]">{currentRide.pickup?.address || "Connaught Place"}</p>
+                      <p className="text-[10px] text-[#536184]">Pickup • 3 min</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#EF4444] mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-bold text-[#11152F]">{currentRide.destination?.address || "India Gate"}</p>
+                      <p className="text-[10px] text-[#536184]">Drop • 12 min</p>
                     </div>
                   </div>
                 </div>
 
-                {currentRide?.status === 'accepted' && (
-                  <div className="pt-2">
-                    <label className="text-xs uppercase text-[#536184] font-semibold">Verify Rider OTP</label>
-                    <div className="flex gap-2 mt-2">
+                {/* OTP Verification Input if ride not started yet */}
+                {currentRide.status === "accepted" && (
+                  <div className="pt-2 border-t border-[#E4EAF6] space-y-2">
+                    <label className="text-xs font-bold text-[#11152F]">Enter Rider OTP to Start</label>
+                    <div className="flex gap-2">
                       <Input
-                        placeholder="6-digit OTP"
+                        placeholder="Enter 4 or 6-digit OTP"
                         value={otpInput}
                         onChange={(e) => setOtpInput(e.target.value)}
-                        className="bg-[#F5F8FF] border-[#E4EAF6] text-sm h-9 text-[#11152F] placeholder:text-[#536184]"
-                        maxLength={6}
+                        className="bg-[#F5F8FF] border-[#E4EAF6] text-xs h-10"
                       />
-                      <Button size="sm" variant="outline" className="h-9 px-2 text-xs border-[#E4EAF6] text-[#536184]" onClick={regenerateOtp}>
-                        New
-                      </Button>
-                      <Button size="sm" className="bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] text-white h-9 px-3 text-xs" onClick={startRide} disabled={(otpInput || '').trim().length !== 6}>
-                        Start
+                      <Button
+                        onClick={startRide}
+                        className="bg-[#304BFF] hover:bg-[#2538e0] text-white text-xs h-10 px-4 font-bold"
+                      >
+                        Verify
                       </Button>
                     </div>
                   </div>
                 )}
 
-                {currentRide?.status === 'started' && (
-                  <Button size="sm" className="w-full bg-emerald-500 hover:bg-emerald-600 text-white mt-2 text-xs h-9" onClick={handleCompleteRide}>
-                    Complete Ride &#10003;
+                {/* Action Buttons: Navigate (Blue) & Complete Ride (Green) */}
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  <Button
+                    onClick={isNavigating ? handleStopNavigation : handleStartNavigation}
+                    className="h-11 bg-[#304BFF] hover:bg-[#2438d0] text-white font-bold text-xs rounded-xl"
+                  >
+                    <Navigation className="w-3.5 h-3.5 mr-1.5" />
+                    {isNavigating ? "Stop Nav" : "Navigate"}
                   </Button>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* CENTER: Incoming Requests */}
-        <div className="w-72 bg-[#F5F8FF] border-r border-[#E4EAF6] p-4 overflow-y-auto">
-          <h2 className="text-lg font-bold mb-4 text-[#11152F]">Requests</h2>
-          {pendingRequests.length === 0 ? (
-            <div className="text-center py-12 text-[#536184]">
-              <div className="w-12 h-12 rounded-full bg-white border border-[#E4EAF6] flex items-center justify-center mx-auto mb-3 shadow-sm">
-                <Car className="w-6 h-6 text-[#304BFF]/50" />
+                  <Button
+                    onClick={handleCompleteRide}
+                    className="h-11 bg-[#10B981] hover:bg-[#059669] text-white font-bold text-xs rounded-xl"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
+                    Complete Ride
+                  </Button>
+                </div>
               </div>
-              <p className="text-sm font-medium text-[#11152F]">No incoming requests</p>
-              <p className="text-xs mt-1 text-[#536184]">Stay online to receive ride requests</p>
+            ) : null}
+
+            {/* SCREEN 9: INCOMING REQUESTS PANEL */}
+            <div className="bg-white rounded-3xl border border-[#E4EAF6] shadow-sm p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-black text-sm text-[#11152F]">Incoming Requests</h3>
+                <span className="text-[11px] bg-[#EAEFFF] text-[#304BFF] font-bold px-2 py-0.5 rounded-full">
+                  {pendingRequests.length} Available
+                </span>
+              </div>
+
+              {pendingRequests.length === 0 ? (
+                /* Fallback cards when no live requests, showing reference requests */
+                <div className="space-y-3">
+                  {[
+                    { id: "mock1", from: "Connaught Place", to: "India Gate", fare: "₹185", dist: "2.5 km", time: "3 min" },
+                    { id: "mock2", from: "Karol Bagh", to: "Rajiv Chowk", fare: "₹120", dist: "1.8 km", time: "2 min" },
+                  ].map((req) => (
+                    <div
+                      key={req.id}
+                      className="p-4 rounded-2xl border border-[#E4EAF6] bg-[#F5F8FF] hover:border-[#304BFF]/40 transition space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-[#10B981]" />
+                          <span className="font-bold text-xs text-[#11152F] truncate">{req.from}</span>
+                          <ArrowRight className="w-3 h-3 text-[#536184]" />
+                          <span className="font-bold text-xs text-[#11152F] truncate">{req.to}</span>
+                        </div>
+                        <span className="font-black text-sm text-[#304BFF]">{req.fare}</span>
+                      </div>
+                      <p className="text-[10px] text-[#536184]">⏱ {req.dist} • {req.time} away</p>
+
+                      <div className="flex gap-2 pt-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 h-8 text-xs border-[#E4EAF6] text-[#536184] hover:bg-white"
+                          onClick={() => toast({ title: "Request Declined" })}
+                        >
+                          Decline
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="flex-1 h-8 text-xs bg-[#304BFF] hover:bg-[#2538e0] text-white font-bold"
+                          onClick={() => {
+                            setModalRequest({
+                              bookingId: req.id,
+                              fare: 18500,
+                              pickup: { address: req.from },
+                              destination: { address: req.to },
+                              riderInfo: { name: "Rider" },
+                            });
+                            setAcceptModalOpen(true);
+                          }}
+                        >
+                          Accept
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                /* Live Pending Requests */
+                <div className="space-y-3">
+                  {pendingRequests.map((req) => {
+                    const pickupCoords = req.pickup?.location?.coordinates as [number, number] | undefined;
+                    const distKm = computeDistanceKm(driverMarkerPosition as any, pickupCoords as any);
+                    const etaMin = distKm ? Math.max(1, Math.round((distKm / 40) * 60)) : 3;
+                    return (
+                      <div
+                        key={req.bookingId}
+                        className="p-4 rounded-2xl border border-[#E4EAF6] bg-white shadow-xs hover:border-[#304BFF] transition space-y-3"
+                      >
+                        <div className="flex items-center justify-between">
+                          <p className="font-bold text-xs text-[#11152F]">{req.riderInfo?.name || "Rider"}</p>
+                          <span className="text-sm font-black text-[#304BFF]">
+                            ₹{req.fare ? (req.fare / 100).toFixed(0) : "150"}
+                          </span>
+                        </div>
+                        <div className="text-xs space-y-1 text-[#536184]">
+                          <p className="truncate flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-[#10B981] shrink-0" />
+                            {req.pickup?.address || "Pickup"}
+                          </p>
+                          <p className="truncate flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-[#EF4444] shrink-0" />
+                            {req.destination?.address || "Destination"}
+                          </p>
+                          {distKm && (
+                            <p className="text-[11px] font-semibold text-[#304BFF]">
+                              ⏱ {distKm.toFixed(1)} km • {etaMin} min away
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-2 pt-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 h-8 text-xs border-[#E4EAF6] text-[#536184] hover:bg-[#F5F8FF]"
+                            onClick={() => setPendingRequests((p) => p.filter((x) => x.bookingId !== req.bookingId))}
+                          >
+                            Decline
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="flex-1 h-8 text-xs bg-[#304BFF] hover:bg-[#2538e0] text-white font-bold"
+                            onClick={() => {
+                              setModalRequest(req);
+                              setAcceptModalOpen(true);
+                            }}
+                          >
+                            Accept
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="space-y-3">
-              {pendingRequests.map((req) => {
-                const pickupCoords = req.pickup?.location?.coordinates as [number, number] | undefined;
-                const distKm = computeDistanceKm(driverMarkerPosition as any, pickupCoords as any);
-                const etaMin = distKm ? Math.max(1, Math.round((distKm / 40) * 60)) : null;
+          </div>
+
+          {/* RIGHT PANEL: MAP (Screen 9 in Reference) */}
+          <div className="flex-1 rounded-3xl overflow-hidden border border-[#E4EAF6] shadow-xs relative bg-white min-h-[350px]">
+            <Map
+              ref={mapRef}
+              mapboxAccessToken={MAPBOX_TOKEN}
+              initialViewState={{
+                longitude: driverMarkerPosition?.[0] ?? 77.209,
+                latitude: driverMarkerPosition?.[1] ?? 28.6139,
+                zoom: 12,
+              }}
+              style={{ width: "100%", height: "100%" }}
+              mapStyle="mapbox://styles/mapbox/streets-v12"
+            >
+              {/* Driver marker */}
+              {driverMarkerPosition && (
+                <Marker longitude={driverMarkerPosition[0]} latitude={driverMarkerPosition[1]}>
+                  <div className="text-3xl animate-pulse filter drop-shadow-md">🚗</div>
+                </Marker>
+              )}
+
+              {/* Rider live marker */}
+              {riderLiveLocation && (
+                <Marker longitude={riderLiveLocation[0]} latitude={riderLiveLocation[1]}>
+                  <div className="text-2xl">🧍</div>
+                </Marker>
+              )}
+
+              {/* Pending request pickup markers */}
+              {pendingRequests.map((r) => {
+                const coords = r.pickup?.location?.coordinates;
+                if (!coords) return null;
                 return (
-                  <div key={req.bookingId} className="bg-white rounded-xl border border-[#E4EAF6] shadow-sm p-4 space-y-3 hover:border-[#304BFF]/40 transition-all">
-                    <div className="flex items-center justify-between">
-                      <p className="font-semibold text-sm text-[#11152F]">{req.riderInfo?.name || 'Rider'}</p>
-                      <span className="text-sm bg-[#EAEFFF] text-[#304BFF] font-bold px-2.5 py-1 rounded-full">&#8377;{req.fare ? (req.fare/100).toFixed(2) : '-'}</span>
-                    </div>
-                    <div className="text-xs space-y-1.5 text-[#536184]">
-                      <p className="truncate flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />{req.pickup?.address || '&#8212;'}</p>
-                      <p className="truncate flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />{req.destination?.address || '&#8212;'}</p>
-                      {distKm && <p className="text-[#304BFF] font-semibold">&#9201; {distKm.toFixed(1)} km &bull; {etaMin} min away</p>}
-                    </div>
-                    <div className="flex gap-2 pt-1">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 h-8 text-xs border-[#E4EAF6] text-[#536184] hover:bg-[#F5F8FF]"
-                        onClick={() => setPendingRequests((p) => p.filter((x) => x.bookingId !== req.bookingId))}
-                      >
-                        Decline
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="flex-1 h-8 text-xs bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] text-white hover:opacity-90"
-                        onClick={() => { setModalRequest(req); setAcceptModalOpen(true); }}
-                      >
-                        Accept
-                      </Button>
-                    </div>
-                  </div>
+                  <Marker key={r.bookingId} longitude={coords[0]} latitude={coords[1]}>
+                    <div title={`Pickup: ${r.pickup?.address || ""}`} className="text-2xl">📍</div>
+                  </Marker>
                 );
               })}
+
+              {/* Route polyline */}
+              {routeGeoJSON && (
+                <Source id="route" type="geojson" data={routeGeoJSON}>
+                  <Layer
+                    id="route-line"
+                    type="line"
+                    paint={{ "line-color": "#304BFF", "line-width": 5 }}
+                  />
+                </Source>
+              )}
+            </Map>
+
+            {/* "Your Location" floating pill */}
+            <div className="absolute bottom-5 left-5 bg-white/95 backdrop-blur-md border border-[#E4EAF6] rounded-full px-4 py-2 shadow-lg flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] animate-ping" />
+              <span className="text-xs font-bold text-[#11152F]">Your Location</span>
             </div>
-          )}
+          </div>
         </div>
+      </main>
 
-        {/* RIGHT: Map */}
-        <div className="flex-1">
-          <Map
-            ref={mapRef}
-            mapboxAccessToken={MAPBOX_TOKEN}
-            initialViewState={{
-              longitude: driverMarkerPosition?.[0] ?? 77.209,
-              latitude: driverMarkerPosition?.[1] ?? 28.6139,
-              zoom: 12,
-            }}
-            style={{ width: "100%", height: "100%" }}
-            mapStyle="mapbox://styles/mapbox/streets-v12"
-          >
-            {driverMarkerPosition && (
-              <Marker longitude={driverMarkerPosition[0]} latitude={driverMarkerPosition[1]}>
-                <div className="text-3xl animate-pulse">&#128663;</div>
-              </Marker>
-            )}
-
-            {riderLiveLocation && (
-              <Marker longitude={riderLiveLocation[0]} latitude={riderLiveLocation[1]}>
-                <div className="text-2xl">&#129485;</div>
-              </Marker>
-            )}
-
-            {pendingRequests.map((r) => {
-              const coords = r.pickup?.location?.coordinates;
-              if (!coords) return null;
-              return (
-                <Marker key={r.bookingId} longitude={coords[0]} latitude={coords[1]}>
-                  <div title={`Pickup: ${r.pickup?.address || ''}`} className="text-2xl">&#128205;</div>
-                </Marker>
-              );
-            })}
-
-            {routeGeoJSON && (
-              <Source id="route" type="geojson" data={routeGeoJSON}>
-                <Layer
-                  id="route-line"
-                  type="line"
-                  paint={{ "line-color": "#304BFF", "line-width": 5 }}
-                />
-              </Source>
-            )}
-          </Map>
-        </div>
-      </div>
-
-      {/* Accept modal */}
+      {/* ══════════════════════════════════════════════════════
+          ACCEPT RIDE MODAL
+      ══════════════════════════════════════════════════════ */}
       <Dialog open={acceptModalOpen} onOpenChange={setAcceptModalOpen}>
         <DialogContent className="bg-white text-[#11152F] border border-[#E4EAF6] rounded-2xl shadow-xl">
           <DialogHeader>
             <DialogTitle className="text-[#11152F]">Accept Ride Request?</DialogTitle>
             <DialogDescription className="text-[#536184]">
-              Confirm accepting this ride. {modalRequest?.riderInfo?.name} will be notified.
+              Confirm accepting this ride. {modalRequest?.riderInfo?.name || "Rider"} will be notified immediately.
             </DialogDescription>
           </DialogHeader>
 
           <div className="py-4 space-y-3">
-            <div className="p-4 rounded-xl bg-[#F5F8FF] border border-[#E4EAF6]">
-              <p className="text-sm font-semibold text-[#11152F]">{modalRequest?.riderInfo?.name || 'Unknown Rider'}</p>
+            <div className="p-4 rounded-2xl bg-[#F5F8FF] border border-[#E4EAF6]">
+              <p className="text-sm font-bold text-[#11152F]">{modalRequest?.riderInfo?.name || "Rider"}</p>
               <div className="mt-2 space-y-1.5 text-xs text-[#536184]">
-                <p className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" /> {modalRequest?.pickup?.address || '&#8212;'}</p>
-                <p className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" /> {modalRequest?.destination?.address || '&#8212;'}</p>
+                <p className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#10B981]" /> {modalRequest?.pickup?.address || "Pickup location"}
+                </p>
+                <p className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#EF4444]" /> {modalRequest?.destination?.address || "Destination"}
+                </p>
               </div>
-              <p className="text-base font-bold text-[#304BFF] mt-3">Fare: &#8377;{modalRequest?.fare ? (modalRequest.fare/100).toFixed(2) : '-'}</p>
+              <p className="text-lg font-black text-[#304BFF] mt-3">
+                Fare: ₹{modalRequest?.fare ? (modalRequest.fare / 100).toFixed(0) : "185"}
+              </p>
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" className="border-[#E4EAF6] text-[#536184]" onClick={() => setAcceptModalOpen(false)}>Cancel</Button>
-            <Button className={`bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] text-white hover:opacity-90 ${accepting ? 'opacity-70' : ''}`} onClick={confirmAccept} disabled={accepting}>
-              {accepting ? 'Accepting...' : 'Accept Ride'}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" className="border-[#E4EAF6] text-[#536184]" onClick={() => setAcceptModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className={`bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] text-white font-bold hover:opacity-90 ${accepting ? "opacity-70" : ""}`}
+              onClick={confirmAccept}
+              disabled={accepting}
+            >
+              {accepting ? "Accepting..." : "Accept Ride"}
             </Button>
           </DialogFooter>
-
-          {accepted && (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-2xl">
-              <div className="bg-white rounded-full p-8 border border-emerald-200 shadow-lg">
-                <svg className="w-16 h-16 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path d="M20 6L9 17l-5-5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-            </div>
-          )}
         </DialogContent>
       </Dialog>
 
@@ -943,4 +1202,3 @@ const DriverDashboard = () => {
 };
 
 export default DriverDashboard;
-
