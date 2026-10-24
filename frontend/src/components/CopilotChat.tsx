@@ -88,7 +88,7 @@ const CopilotChat: React.FC = () => {
           {showMascotSign && (
             <div
               onClick={() => setOpen(true)}
-              className="group cursor-pointer mr-[-12px] mb-5 bg-white border border-[#304BFF]/40 hover:border-[#304BFF] text-[#11152F] rounded-xl p-2.5 shadow-xl max-w-[175px] transition-all hover:scale-105 hover:-translate-y-0.5 relative z-20"
+              className="group cursor-pointer mr-[-12px] mb-5 bg-slate-900/95 border border-cyan-500/50 hover:border-cyan-400 text-white rounded-xl p-2.5 shadow-2xl backdrop-blur-xl max-w-[175px] transition-all hover:scale-105 hover:-translate-y-0.5 relative z-20"
             >
               {/* Dismiss X */}
               <button
@@ -105,16 +105,16 @@ const CopilotChat: React.FC = () => {
               {/* Signboard Header */}
               <div className="flex items-center gap-1 mb-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                <span className="text-[9px] font-black uppercase tracking-wider text-[#304BFF]">
+                <span className="text-[9px] font-black uppercase tracking-wider text-cyan-300">
                   AI ASSISTANT
                 </span>
               </div>
 
               {/* Signboard Content */}
-              <p className="text-[11px] font-bold text-[#11152F] leading-tight">
+              <p className="text-[11px] font-bold text-slate-100 leading-tight">
                 How can I help you?
               </p>
-              <p className="text-[9px] text-[#536184] mt-0.5 leading-snug">
+              <p className="text-[9px] text-slate-400 mt-0.5 leading-snug">
                 Tap to book rides, check fares, or ask questions!
               </p>
 
@@ -226,32 +226,32 @@ const CopilotChat: React.FC = () => {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-84 sm:w-96 h-[470px] bg-white border border-[#E4EAF6] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+    <div className="fixed bottom-6 right-6 z-50 w-84 sm:w-96 h-[470px] bg-slate-900/95 border border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
       {/* Header with Mascot Avatar */}
-      <div className="p-3.5 border-b border-[#E4EAF6] flex justify-between items-center bg-gradient-to-r from-[#304BFF] to-[#6B7FFF]">
+      <div className="p-3.5 border-b border-white/10 flex justify-between items-center bg-slate-800/80">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-full bg-white/20 border border-white/30 p-[1.5px] shadow-md">
-            <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 p-[1.5px] shadow-md shadow-cyan-500/20">
+            <div className="w-full h-full rounded-full bg-slate-950 flex items-center justify-center">
               {/* Mini Mascot Face */}
               <svg className="w-6 h-6" viewBox="0 0 64 64" fill="none">
-                <rect x="12" y="14" width="40" height="32" rx="12" fill="#304BFF" />
-                <rect x="18" y="20" width="28" height="18" rx="6" fill="#EAEFFF" />
-                <circle cx="26" cy="28" r="3" fill="#304BFF" />
-                <circle cx="38" cy="28" r="3" fill="#304BFF" />
-                <path d="M29 33C30.5 34.5 33.5 34.5 35 33" stroke="#304BFF" strokeWidth="2" strokeLinecap="round" />
+                <rect x="12" y="14" width="40" height="32" rx="12" fill="#0EA5E9" />
+                <rect x="18" y="20" width="28" height="18" rx="6" fill="#0F172A" />
+                <circle cx="26" cy="28" r="3" fill="#38BDF8" />
+                <circle cx="38" cy="28" r="3" fill="#38BDF8" />
+                <path d="M29 33C30.5 34.5 33.5 34.5 35 33" stroke="#38BDF8" strokeWidth="2" strokeLinecap="round" />
               </svg>
             </div>
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <p className="font-bold text-sm text-white">RideFlow Assistant</p>
-              <span className="text-[10px] bg-white/20 text-white font-semibold px-1.5 py-0.5 rounded-full">
-                AI
+              <p className="font-bold text-sm text-slate-100">RideFlow Assistant</p>
+              <span className="text-[10px] bg-cyan-500/20 text-cyan-300 font-semibold px-1.5 py-0.2 rounded-full">
+                AI Mascot
               </span>
             </div>
-            <p className="text-[10px] text-white/80 flex items-center gap-1 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
-              Online • Gemini
+            <p className="text-[10px] text-emerald-400 flex items-center gap-1 mt-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Online • Gemini 3.5
             </p>
           </div>
         </div>
@@ -260,7 +260,7 @@ const CopilotChat: React.FC = () => {
         <div className="flex items-center gap-1">
           <button
             onClick={resetChat}
-            className="w-7 h-7 rounded-lg hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-colors cursor-pointer"
+            className="w-7 h-7 rounded-lg hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer"
             title="Reset conversation"
             aria-label="Reset conversation"
           >
@@ -268,7 +268,7 @@ const CopilotChat: React.FC = () => {
           </button>
           <button
             onClick={() => setOpen(false)}
-            className="w-7 h-7 rounded-lg hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-colors cursor-pointer"
+            className="w-7 h-7 rounded-lg hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer"
             aria-label="Close chat"
           >
             <X className="w-4 h-4" />
@@ -277,7 +277,7 @@ const CopilotChat: React.FC = () => {
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-3.5 space-y-3 text-sm bg-[#F5F8FF]">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-3.5 space-y-3 text-sm">
         {msgs.map((m, i) => (
           <div
             key={i}
@@ -286,8 +286,8 @@ const CopilotChat: React.FC = () => {
             <div
               className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-xs leading-relaxed ${
                 m.role === "user"
-                  ? "bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] text-white rounded-br-sm shadow-md shadow-[#304BFF]/20"
-                  : "bg-white text-[#11152F] border border-[#E4EAF6] rounded-bl-sm shadow-sm"
+                  ? "bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-br-xs shadow-md"
+                  : "bg-slate-800/90 text-slate-200 border border-white/5 rounded-bl-xs shadow-sm"
               }`}
             >
               {m.text}
@@ -311,7 +311,7 @@ const CopilotChat: React.FC = () => {
                     if (btn) btn.click();
                   }, 50);
                 }}
-                className="text-[11px] bg-white hover:bg-[#EAEFFF] text-[#304BFF] border border-[#304BFF]/30 rounded-full px-2.5 py-1 text-left transition hover:border-[#304BFF] cursor-pointer shadow-sm"
+                className="text-[11px] bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/20 rounded-full px-2.5 py-1 text-left transition hover:border-cyan-400 cursor-pointer"
               >
                 {suggestion}
               </button>
@@ -320,8 +320,8 @@ const CopilotChat: React.FC = () => {
         )}
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-white text-[#536184] border border-[#E4EAF6] px-3.5 py-2 rounded-2xl text-xs flex items-center gap-2 shadow-sm">
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#304BFF]" />
+            <div className="bg-slate-800/90 text-slate-400 border border-white/5 px-3.5 py-2 rounded-2xl text-xs flex items-center gap-2">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
               <span>Thinking...</span>
             </div>
           </div>
@@ -329,19 +329,19 @@ const CopilotChat: React.FC = () => {
       </div>
 
       {/* Input bar */}
-      <div className="p-3 border-t border-[#E4EAF6] bg-white flex gap-2">
+      <div className="p-3 border-t border-white/10 bg-slate-800/40 flex gap-2">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
           placeholder="Ask about rides, fares, or safety..."
-          className="text-xs bg-[#F5F8FF] border-[#E4EAF6] text-[#11152F] placeholder:text-[#536184] focus-visible:ring-[#304BFF] h-9"
+          className="text-xs bg-slate-800/90 border-white/10 text-slate-100 placeholder:text-slate-500 focus-visible:ring-cyan-500 h-9"
           disabled={loading}
         />
         <Button
           id="copilot-send-btn"
           size="sm"
-          className="bg-gradient-to-r from-[#304BFF] to-[#6B7FFF] text-white hover:opacity-90 px-3 h-9 shrink-0 text-xs font-semibold cursor-pointer"
+          className="btn-gradient px-3 h-9 shrink-0 text-xs font-semibold cursor-pointer"
           onClick={send}
           disabled={loading || !input.trim()}
         >

@@ -2,290 +2,225 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ============================================================
-   RIDEFLOW DESIGN SYSTEM v2 — Light Premium Theme
-   Reference: #304BFF primary, #F5F8FF background, white cards
-   ============================================================ */
+/* RideShare App Design System - Purple → Blue → Teal Gradient Theme */
 
 @layer base {
   :root {
-    /* ── Core backgrounds ── */
-    --background: 218 100% 98%;        /* #F5F8FF */
-    --foreground: 228 47% 13%;         /* #11152F */
-
-    /* ── Card ── */
-    --card: 0 0% 100%;                 /* #FFFFFF */
-    --card-foreground: 228 47% 13%;
-
-    /* ── Primary blue ── */
-    --primary: 230 100% 59%;           /* #304BFF */
-    --primary-bright: 224 100% 57%;    /* #2457FF */
+    /* Core Brand Colors - HSL Values */
+    --background: 0 0% 100%;
+    --foreground: 220 15% 15%;
+    
+    /* Card System */
+    --card: 0 0% 100%;
+    --card-foreground: 220 15% 15%;
+    
+    /* Primary Gradient Brand Colors */
+    --primary: 280 100% 60%;        /* Purple */
+    --primary-blue: 220 100% 55%;    /* Blue */
+    --primary-teal: 180 100% 45%;    /* Teal */
     --primary-foreground: 0 0% 100%;
-
-    /* ── Secondary ── */
-    --secondary: 225 100% 96%;         /* #EAEFFF soft lavender */
-    --secondary-foreground: 228 47% 13%;
-
-    /* ── Muted ── */
-    --muted: 218 50% 96%;
-    --muted-foreground: 218 26% 44%;   /* #536184 */
-
-    /* ── Accent ── */
-    --accent: 225 100% 96%;
-    --accent-foreground: 230 100% 59%;
-
-    /* ── Status ── */
-    --success: 150 78% 40%;            /* #16B86A */
+    
+    /* Secondary Colors */
+    --secondary: 220 20% 95%;
+    --secondary-foreground: 220 15% 15%;
+    
+    /* Muted Colors */
+    --muted: 220 15% 96%;
+    --muted-foreground: 220 10% 55%;
+    
+    /* Accent Colors */
+    --accent: 180 100% 45%;
+    --accent-foreground: 0 0% 100%;
+    
+    /* Status Colors */
+    --success: 140 65% 45%;
     --success-foreground: 0 0% 100%;
-    --destructive: 355 88% 61%;        /* #F04452 */
-    --destructive-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
+    --warning: 45 100% 55%;
     --warning-foreground: 0 0% 100%;
-
-    /* ── UI Chrome ── */
-    --border: 218 40% 89%;             /* #E4EAF6 */
-    --input: 218 40% 93%;
-    --ring: 230 100% 59%;
-    --radius: 0.875rem;
-
-    /* ── Shadows ── */
-    --shadow-sm: 0 1px 3px 0 rgba(17,21,47,0.06), 0 1px 2px -1px rgba(17,21,47,0.04);
-    --shadow-md: 0 4px 16px 0 rgba(17,21,47,0.08), 0 2px 4px -2px rgba(17,21,47,0.04);
-    --shadow-lg: 0 10px 32px -4px rgba(17,21,47,0.10), 0 4px 8px -2px rgba(17,21,47,0.06);
-    --shadow-primary: 0 8px 24px -4px rgba(48,75,255,0.30);
-
-    /* ── Brand gradient ── */
-    --gradient-primary: linear-gradient(135deg, #304BFF 0%, #6B7FFF 100%);
-    --gradient-hero: linear-gradient(180deg, #F0F4FF 0%, #F8FBFF 100%);
-    --gradient-card: linear-gradient(145deg, #FFFFFF 0%, #F8FAFF 100%);
+    --destructive: 0 75% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* UI Elements */
+    --border: 220 15% 85%;
+    --input: 220 15% 96%;
+    --ring: 280 100% 60%;
+    --radius: 1rem;
+    
+    /* Glass Morphism Effects */
+    --glass-bg: 0 0% 100% / 0.1;
+    --glass-border: 0 0% 100% / 0.2;
+    --glass-shadow: 0 0% 0% / 0.1;
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(280 100% 60%), hsl(220 100% 55%), hsl(180 100% 45%));
+    --gradient-card: linear-gradient(135deg, hsl(0 0% 100% / 0.1), hsl(0 0% 100% / 0.05));
+    --gradient-hero: linear-gradient(135deg, hsl(280 100% 60% / 0.1), hsl(220 100% 55% / 0.1), hsl(180 100% 45% / 0.1));
+    
+    /* Shadows */
+    --shadow-glass: 0 8px 32px hsl(var(--glass-shadow));
+    --shadow-card: 0 4px 20px hsl(220 15% 0% / 0.08);
+    --shadow-floating: 0 12px 40px hsl(280 100% 60% / 0.15);
   }
 
   .dark {
-    --background: 228 25% 8%;
-    --foreground: 0 0% 96%;
-    --card: 228 22% 12%;
-    --card-foreground: 0 0% 96%;
-    --primary: 230 100% 65%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 228 20% 16%;
-    --secondary-foreground: 0 0% 96%;
-    --muted: 228 18% 16%;
-    --muted-foreground: 218 20% 60%;
-    --border: 228 18% 22%;
-    --input: 228 18% 16%;
-    --shadow-sm: 0 1px 3px 0 rgba(0,0,0,0.3);
-    --shadow-md: 0 4px 16px 0 rgba(0,0,0,0.35);
-    --shadow-lg: 0 10px 32px -4px rgba(0,0,0,0.40);
+    --background: 220 25% 8%;
+    --foreground: 0 0% 95%;
+    
+    --card: 220 20% 12%;
+    --card-foreground: 0 0% 95%;
+    
+    --secondary: 220 20% 16%;
+    --secondary-foreground: 0 0% 95%;
+    
+    --muted: 220 15% 16%;
+    --muted-foreground: 220 10% 65%;
+    
+    --border: 220 15% 20%;
+    --input: 220 15% 16%;
+    
+    --glass-bg: 0 0% 0% / 0.2;
+    --glass-border: 0 0% 100% / 0.1;
+    --glass-shadow: 0 0% 0% / 0.3;
+    
+    --gradient-card: linear-gradient(135deg, hsl(220 20% 16% / 0.8), hsl(220 15% 12% / 0.6));
+    --gradient-hero: linear-gradient(135deg, hsl(280 100% 60% / 0.2), hsl(220 100% 55% / 0.2), hsl(180 100% 45% / 0.2));
+    
+    --shadow-glass: 0 8px 32px hsl(0 0% 0% / 0.4);
+    --shadow-card: 0 4px 20px hsl(0 0% 0% / 0.2);
+    --shadow-floating: 0 12px 40px hsl(280 100% 60% / 0.3);
   }
 }
 
 @layer base {
-  * { @apply border-border box-border; }
-
-  html { scroll-behavior: smooth; }
-
-  body {
-    @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  * {
+    @apply border-border;
   }
-
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-weight: 700;
-    color: hsl(var(--foreground));
-    letter-spacing: -0.02em;
+  
+  body {
+    @apply bg-background text-foreground font-sans;
+    background-attachment: fixed;
+  }
+  
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
   }
 }
 
-/* ============================================================
-   COMPONENT LAYER
-   ============================================================ */
 @layer components {
-
-  /* ── RF Card ── */
-  .rf-card {
-    @apply bg-white rounded-2xl border border-[#E4EAF6];
-    box-shadow: var(--shadow-md);
+  /* Glass Morphism Card */
+  .glass-card {
+    @apply backdrop-blur-xl rounded-2xl border;
+    background: var(--gradient-card);
+    border-color: hsl(var(--glass-border));
+    box-shadow: var(--shadow-glass);
   }
-
-  /* ── RF Card hover ── */
-  .rf-card-hover {
-    @apply rf-card transition-all duration-200 hover:-translate-y-0.5;
-    box-shadow: var(--shadow-md);
-  }
-  .rf-card-hover:hover {
-    box-shadow: var(--shadow-lg);
-  }
-
-  /* ── Primary Button ── */
-  .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
-    background: var(--gradient-primary);
-    box-shadow: var(--shadow-primary);
-  }
-  .btn-primary:hover:not(:disabled) {
-    @apply brightness-110 -translate-y-px;
-    box-shadow: 0 12px 32px -4px rgba(48,75,255,0.40);
-  }
-  .btn-primary:active:not(:disabled) { @apply translate-y-0 brightness-95; }
-
-  /* ── Secondary Button ── */
-  .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-[#304BFF] border border-[#304BFF]/30 bg-[#EAEFFF] transition-all duration-200 hover:bg-[#304BFF]/10 focus-visible:outline-none focus-visible:ring-2 disabled:opacity-50;
-  }
-
-  /* ── Ghost Button ── */
-  .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-[#536184] border border-[#E4EAF6] bg-white transition-all duration-200 hover:bg-[#F5F8FF] hover:border-[#304BFF]/30 hover:text-[#304BFF];
-  }
-
-  /* Keep old class for backward-compat */
+  
+  /* Gradient Button */
   .btn-gradient {
-    @apply btn-primary;
+    @apply relative overflow-hidden rounded-full px-8 py-4 text-white font-semibold transition-all duration-300;
+    background: var(--gradient-primary);
+    box-shadow: var(--shadow-floating);
+    /* Improve contrast when gradient edges are light by adding subtle shadow */
+    text-shadow: 0 1px 2px rgba(0,0,0,0.18);
   }
-
-  /* ── Input ── */
-  .rf-input {
-    @apply w-full rounded-xl border border-[#E4EAF6] bg-white px-4 py-2.5 text-sm text-[#11152F] placeholder:text-[#A0AABF] focus:border-[#304BFF] focus:ring-2 focus:ring-[#304BFF]/20 outline-none transition-all duration-150;
-    box-shadow: var(--shadow-sm);
+  
+  .btn-gradient:hover {
+    @apply scale-105;
+    box-shadow: 0 16px 50px hsl(280 100% 60% / 0.25);
   }
-
-  /* ── Badge ── */
-  .badge-success { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-[#EDFBF4] text-[#16B86A]; }
-  .badge-danger   { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-[#FEF1F2] text-[#F04452]; }
-  .badge-primary  { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-[#EAEFFF] text-[#304BFF]; }
-  .badge-warning  { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-[#FEF9EC] text-[#D97706]; }
-  .badge-neutral  { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-[#F1F5F9] text-[#536184]; }
-
-  /* ── Sidebar ── */
-  .rf-sidebar {
-    @apply fixed top-0 left-0 h-full w-64 bg-white border-r border-[#E4EAF6] flex flex-col z-30;
-    box-shadow: 2px 0 16px rgba(17,21,47,0.04);
+  
+  /* Floating Action Button */
+  .fab {
+    @apply fixed bottom-6 right-6 w-16 h-16 rounded-full flex items-center justify-center text-white shadow-lg transition-all duration-300 z-50;
+    background: var(--gradient-primary);
+    box-shadow: var(--shadow-floating);
   }
-  .rf-sidebar-item {
-    @apply flex items-center gap-3 px-4 py-2.5 rounded-xl mx-2 text-sm font-medium text-[#536184] cursor-pointer transition-all duration-150 hover:bg-[#F5F8FF] hover:text-[#304BFF];
+  
+  .fab:hover {
+    @apply scale-110;
   }
-  .rf-sidebar-item.active {
-    @apply bg-[#EAEFFF] text-[#304BFF];
-  }
-  .rf-sidebar-item.active svg { @apply text-[#304BFF]; }
-
-  /* ── Map container ── */
+  
+  /* Map Container */
   .map-container {
     @apply relative w-full h-full rounded-2xl overflow-hidden;
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-card);
   }
-
-  /* ── Section title ── */
-  .section-eyebrow {
-    @apply text-xs font-semibold uppercase tracking-widest text-[#304BFF];
+  
+  /* Animated Background */
+  .animated-bg {
+    @apply relative overflow-hidden;
+    background: var(--gradient-hero);
   }
-
-  /* ── Stat card ── */
-  .stat-card {
-    @apply rf-card p-5 flex flex-col gap-1;
+  
+  .animated-bg::before {
+    @apply absolute inset-0 opacity-50;
+    content: '';
+    background: linear-gradient(-45deg, transparent, hsl(280 100% 60% / 0.1), transparent, hsl(180 100% 45% / 0.1));
+    background-size: 400% 400%;
+    animation: gradient-shift 8s ease infinite;
   }
-
-  /* ── Glass card (keep for copilot backward compat) ── */
-  .glass-card {
-    @apply bg-white/80 backdrop-blur-xl rounded-2xl border border-[#E4EAF6];
-    box-shadow: var(--shadow-md);
-  }
-
-  /* ── Gradient text ── */
+  
+  /* Text Gradient */
   .text-gradient {
+    @apply bg-clip-text text-transparent font-extrabold;
     background: var(--gradient-primary);
     -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
     background-clip: text;
+    -webkit-text-fill-color: transparent;
+    /* Fallback for contexts where the gradient may be low-contrast: add subtle text-shadow */
+    text-shadow: 0 1px 2px rgba(0,0,0,0.06);
   }
 
-  /* ── Floating card (hero booking) ── */
-  .hero-card {
-    @apply bg-white rounded-2xl p-6 border border-[#E4EAF6];
-    box-shadow: 0 20px 64px -12px rgba(17,21,47,0.14);
-  }
-
-  /* ── Pill nav ── */
-  .pill-nav {
-    @apply flex items-center gap-1 bg-[#F5F8FF] border border-[#E4EAF6] rounded-full p-1;
-  }
-  .pill-nav-item {
-    @apply px-4 py-1.5 rounded-full text-sm font-medium text-[#536184] cursor-pointer transition-all duration-150;
-  }
-  .pill-nav-item.active {
-    @apply bg-white text-[#11152F] shadow-sm;
-    box-shadow: var(--shadow-sm);
+  /* Ensure text placed on glass-card gets a readable fallback if author accidentally sets white text */
+  .glass-card .text-white {
+    color: hsl(var(--foreground));
+    text-shadow: none;
   }
 }
 
-/* ============================================================
-   UTILITY / ANIMATION LAYER
-   ============================================================ */
 @layer utilities {
-  @keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-8px); }
-  }
-  @keyframes spin-slow {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-  @keyframes fade-up {
-    from { opacity: 0; transform: translateY(16px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes slide-in-right {
-    from { opacity: 0; transform: translateX(24px); }
-    to { opacity: 1; transform: translateX(0); }
-  }
-  @keyframes pulse-ring {
-    0% { box-shadow: 0 0 0 0 rgba(48,75,255,0.4); }
-    70% { box-shadow: 0 0 0 10px rgba(48,75,255,0); }
-    100% { box-shadow: 0 0 0 0 rgba(48,75,255,0); }
-  }
-  @keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-  }
+  /* Animation Keyframes */
   @keyframes gradient-shift {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
   }
-
-  .animate-float        { animation: float 3s ease-in-out infinite; }
-  .animate-spin-slow    { animation: spin-slow 20s linear infinite; }
-  .animate-fade-up      { animation: fade-up 0.5s ease-out both; }
-  .animate-slide-right  { animation: slide-in-right 0.4s ease-out both; }
-  .animate-pulse-ring   { animation: pulse-ring 2s ease-in-out infinite; }
-  .animate-gradient     { animation: gradient-shift 8s ease infinite; }
-  .animate-pulse-glow   { animation: pulse-ring 2s ease-in-out infinite; }
-
-  /* Skeleton shimmer */
-  .skeleton {
-    background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s ease-in-out infinite;
-    @apply rounded-lg;
+  
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
   }
-
-  /* Scrollbar */
-  .scrollbar-thin::-webkit-scrollbar { width: 4px; }
-  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
-  .scrollbar-thin::-webkit-scrollbar-thumb { background: #E4EAF6; border-radius: 4px; }
-  .scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #C8D3E8; }
-
-  /* Hide scrollbar but keep function */
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-  /* Prefers reduced motion */
-  @media (prefers-reduced-motion: reduce) {
-    .animate-float, .animate-spin-slow, .animate-fade-up,
-    .animate-slide-right, .animate-pulse-ring, .animate-gradient { animation: none; }
+  
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 20px hsl(280 100% 60% / 0.3);
+    }
+    50% {
+      box-shadow: 0 0 40px hsl(280 100% 60% / 0.6);
+    }
+  }
+  
+  /* Utility Classes */
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  
+  .animate-gradient {
+    animation: gradient-shift 8s ease infinite;
   }
 }
-
-/* ── Mapbox overrides ── */
-.mapboxgl-ctrl-logo { display: none !important; }
-.mapboxgl-ctrl-attrib { display: none !important; }
